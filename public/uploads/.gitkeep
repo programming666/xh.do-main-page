@@ -1,0 +1,2 @@
+# Keep this directory tracked so the runtime can write to it.
+# Actual uploads (logos / backgrounds / projects) are gitignored.

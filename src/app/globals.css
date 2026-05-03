@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f4f8ff;
+  --foreground: #07111f;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-strong: rgba(255, 255, 255, 0.92);
+  --muted: #4b5f7a;
+  --primary: #1297ff;
+  --secondary: #7b61ff;
+  --border: rgba(15, 23, 42, 0.12);
+  --glow: rgba(18, 151, 255, 0.35);
+  --hero-overlay: linear-gradient(180deg, rgba(244, 248, 255, 0.16), rgba(244, 248, 255, 0.88));
+  --grid-line: rgba(18, 151, 255, 0.08);
+  --body-tint-1: rgba(18, 151, 255, 0.18);
+  --body-tint-2: rgba(123, 97, 255, 0.12);
+}
+
+.dark {
+  --background: #030712;
+  --foreground: #edf6ff;
+  --card: rgba(5, 15, 31, 0.58);
+  --card-strong: rgba(8, 18, 36, 0.84);
+  --muted: #8ca6c7;
+  --primary: #42c2ff;
+  --secondary: #8e7dff;
+  --border: rgba(120, 170, 255, 0.18);
+  --glow: rgba(66, 194, 255, 0.28);
+  --hero-overlay: linear-gradient(180deg, rgba(3, 7, 18, 0.26), rgba(3, 7, 18, 0.92));
+  --grid-line: rgba(66, 194, 255, 0.12);
+  --body-tint-1: rgba(66, 194, 255, 0.16);
+  --body-tint-2: rgba(142, 125, 255, 0.14);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Global theme-transition: every element interpolates color-related
+   properties for the same duration so light/dark switching reads as a
+   single coordinated animation rather than a piecemeal flicker. The hero
+   image / overlay handles its own crossfade in tech-background.tsx. */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 600ms ease,
+    color 600ms ease,
+    border-color 600ms ease,
+    fill 600ms ease,
+    stroke 600ms ease,
+    box-shadow 600ms ease;
+}
+
+body {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  position: relative;
+}
+
+/* The body tint pseudo-element holds the radial color washes. Its own
+   background uses CSS variables that swap with the theme, so tinting
+   transitions in lockstep with the rest of the palette. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top left, var(--body-tint-1), transparent 30%),
+    radial-gradient(circle at top right, var(--body-tint-2), transparent 28%);
+  transition: background 600ms ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+select {
+  color-scheme: light;
+  background-color: rgba(255, 255, 255, 0.82);
+  color: #07111f;
+}
+
+.dark select {
+  color-scheme: dark;
+  background-color: rgba(8, 18, 36, 0.92);
+  color: #edf6ff;
+}
+
+option {
+  background: var(--card-strong);
+  color: var(--foreground);
+}
+
+::selection {
+  background: rgba(18, 151, 255, 0.32);
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.glass-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(20px);
+}
+
+.hero-text-shadow {
+  text-shadow: 0 0 24px rgba(66, 194, 255, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}

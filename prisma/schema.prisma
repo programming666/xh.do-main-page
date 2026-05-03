@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String      @id
+  name             String
+  email            String
+  emailVerified    Boolean     @default(false)
+  image            String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  twoFactorEnabled Boolean?    @default(false)
+  locale           String?
+  sessions         Session[]
+  accounts         Account[]
+  twofactors       TwoFactor[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model TwoFactor {
+  id          String   @id
+  secret      String
+  backupCodes String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified    Boolean? @default(true)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
+}
+
+model SiteSettings {
+  id                   String                    @id @default("default")
+  siteName             String                    @default("xh.do")
+  metaTitle            String?
+  githubUrl            String?
+  logoMode             String                    @default("url")
+  logoUrl              String?
+  showFriendLinks      Boolean                   @default(true)
+  heroMediaType        String                    @default("image")
+  heroMediaMode        String                    @default("url")
+  heroMediaUrl         String?
+  heroMediaPlaylist    String?
+  heroLightImageUrl    String?
+  heroLightPlaylist    String?
+  heroDarkImageUrl     String?
+  heroDarkPlaylist     String?
+  heroImageIntervalMs  Int                       @default(4500)
+  heroPosterUrl        String?
+  heroOverlayOpacity   Int                       @default(55)
+  heroEffect           String                    @default("scroll-pan")
+  accentColor          String                    @default("#4cc9ff")
+  gradientEnabled      Boolean                   @default(false)
+  gradientStart        String                    @default("#1297ff")
+  gradientEnd          String                    @default("#7b61ff")
+  gradientAngle        Int                       @default(135)
+  backgroundFallback   String                    @default("/uploads/backgrounds/default-grid.jpg")
+  updatedAt            DateTime                  @updatedAt
+  createdAt            DateTime                  @default(now())
+  translations         SiteSettingsTranslation[]
+}
+
+model SiteSettingsTranslation {
+  id              String       @id @default(cuid())
+  siteSettingsId  String
+  locale          String
+  eyebrow         String       @default("Personal Site")
+  headline        String
+  subheadline     String
+  aboutTitle      String
+  aboutBody       String
+  primaryLabel    String
+  primaryHref     String
+  secondaryLabel  String
+  secondaryHref   String
+  footerText      String       @default("")
+  siteSettings    SiteSettings @relation(fields: [siteSettingsId], references: [id], onDelete: Cascade)
+
+  @@unique([siteSettingsId, locale])
+}
+
+model Project {
+  id          String               @id @default(cuid())
+  slug        String               @unique
+  coverMode   String               @default("url")
+  coverUrl    String?
+  demoUrl     String?
+  repoUrl     String?
+  status      String               @default("active")
+  sortOrder   Int                  @default(0)
+  isFeatured  Boolean              @default(false)
+  isPublished Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  translations ProjectTranslation[]
+}
+
+model ProjectTranslation {
+  id          String   @id @default(cuid())
+  projectId   String
+  locale      String
+  title       String
+  summary     String
+  description String
+  techStack   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, locale])
+}
+
+model SocialLink {
+  id          String   @id @default(cuid())
+  platform    String
+  label       String
+  url         String
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorEmail String?
+  action     String
+  target     String?
+  metadata   String?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
