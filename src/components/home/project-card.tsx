@@ -20,16 +20,49 @@ export function ProjectCard({
   featured: boolean;
 }) {
   return (
-    <article className="glass-panel group overflow-hidden rounded-3xl">
-      <div className="relative aspect-[16/10] overflow-hidden border-b border-white/10 bg-slate-950/50">
+    <article
+      className="
+        glass-panel group overflow-hidden rounded-3xl
+        transition-[transform,box-shadow,border-color] duration-[450ms]
+        ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform
+        hover:-translate-y-1 hover:border-cyan-300/30
+        hover:shadow-[0_30px_80px_rgba(15,23,42,0.28)]
+      "
+    >
+      <div className="relative aspect-[16/10] overflow-hidden border-b border-white/10 bg-slate-950/55">
         {coverUrl ? (
-          <Image
-            src={coverUrl}
-            alt={title}
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          <>
+            {/*
+              Blurred copy of the same image fills any letterbox area with
+              colors sampled from the image itself, so the contained
+              foreground never looks like it's floating on a flat panel.
+            */}
+            <Image
+              src={coverUrl}
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="
+                object-cover scale-110 blur-2xl opacity-50
+                transition-opacity duration-[700ms]
+                ease-[cubic-bezier(0.22,1,0.36,1)]
+                group-hover:opacity-70
+              "
+            />
+            <Image
+              src={coverUrl}
+              alt={title}
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="
+                object-contain
+                transition-[transform,filter] duration-[700ms]
+                ease-[cubic-bezier(0.22,1,0.36,1)]
+                group-hover:scale-[1.03] group-hover:brightness-110
+              "
+            />
+          </>
         ) : (
           <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_center,rgba(66,194,255,0.3),transparent_45%)] text-sm text-white/60">
             xh.do
