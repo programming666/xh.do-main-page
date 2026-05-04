@@ -35,7 +35,7 @@ export function LocaleSwitcher() {
               const query = searchParams.toString();
               router.replace(query ? `${nextPath}?${query}` : nextPath);
             }}
-            className={`rounded-full px-3 py-1.5 transition-all ${
+            className={`rounded-full px-3 py-1.5 transition-all duration-[2000ms] ease-linear ${
               active
                 ? "bg-slate-950 text-white shadow-sm dark:bg-white/12 dark:text-white"
                 : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/8"

@@ -76,7 +76,7 @@ export default async function LocaleHomePage({
                 </p>
               </div>
               <div className="flex flex-wrap gap-4">
-                <a className="rounded-full bg-cyan-400 px-5 py-3 font-medium text-slate-950 transition-transform hover:scale-[1.02]" href={translation.primaryHref}>
+                <a className="rounded-full bg-cyan-400 px-5 py-3 font-medium text-slate-950 transition-transform duration-[2000ms] ease-linear hover:scale-[1.02]" href={translation.primaryHref}>
                   {translation.primaryLabel}
                 </a>
                 {showSecondaryCta ? (
@@ -100,7 +100,7 @@ export default async function LocaleHomePage({
                   href={site.githubUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/5 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-cyan-200 transition-colors hover:border-cyan-300/45 hover:bg-cyan-300/10"
+                  className="mt-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/5 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-cyan-200 transition-colors duration-[2000ms] ease-linear hover:border-cyan-300/45 hover:bg-cyan-300/10"
                 >
                   <GithubIcon className="h-4 w-4" />
                   <span>{t("visitGithub")}</span>

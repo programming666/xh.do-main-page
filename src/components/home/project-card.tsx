@@ -23,8 +23,8 @@ export function ProjectCard({
     <article
       className="
         glass-panel group overflow-hidden rounded-3xl
-        transition-[transform,box-shadow,border-color] duration-[450ms]
-        ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform
+        transition-[transform,box-shadow,border-color] duration-[2000ms]
+        ease-linear will-change-transform
         hover:-translate-y-1 hover:border-cyan-300/30
         hover:shadow-[0_30px_80px_rgba(15,23,42,0.28)]
       "
@@ -45,7 +45,7 @@ export function ProjectCard({
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="
                 object-cover scale-110 blur-2xl opacity-50
-                transition-opacity duration-[700ms]
+                transition-opacity duration-[2000ms]
                 ease-[cubic-bezier(0.22,1,0.36,1)]
                 group-hover:opacity-70
               "
@@ -57,7 +57,7 @@ export function ProjectCard({
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="
                 object-contain
-                transition-[transform,filter] duration-[700ms]
+                transition-[transform,filter] duration-[2000ms]
                 ease-[cubic-bezier(0.22,1,0.36,1)]
                 group-hover:scale-[1.03] group-hover:brightness-110
               "
@@ -83,12 +83,12 @@ export function ProjectCard({
         <div className="text-xs uppercase tracking-[0.2em] text-cyan-400/90">{techStack}</div>
         <div className="flex flex-wrap gap-3">
           {demoUrl ? (
-            <a className="rounded-full border border-cyan-300/20 px-4 py-2 text-sm hover:bg-cyan-300/10" href={demoUrl} target="_blank" rel="noreferrer">
+            <a className="rounded-full border border-cyan-300/20 px-4 py-2 text-sm transition-colors duration-[2000ms] ease-linear hover:bg-cyan-300/10" href={demoUrl} target="_blank" rel="noreferrer">
               Demo
             </a>
           ) : null}
           {repoUrl ? (
-            <a className="rounded-full border border-white/10 px-4 py-2 text-sm hover:bg-white/8" href={repoUrl} target="_blank" rel="noreferrer">
+            <a className="rounded-full border border-white/10 px-4 py-2 text-sm transition-colors duration-[2000ms] ease-linear hover:bg-white/8" href={repoUrl} target="_blank" rel="noreferrer">
               Repo
             </a>
           ) : null}

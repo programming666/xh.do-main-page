@@ -31,7 +31,7 @@ export function TopNavLink({
   return (
     <NextLink
       href={href}
-      className="glass-panel inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-medium text-foreground transition-transform hover:scale-105"
+      className="glass-panel inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-medium text-foreground transition-transform duration-[2000ms] ease-linear hover:scale-105"
     >
       {label}
     </NextLink>
