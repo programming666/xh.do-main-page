@@ -41,6 +41,10 @@ const BETTER_AUTH_URL = readRequired("BETTER_AUTH_URL");
 const BETTER_AUTH_SECRET = readRequired("BETTER_AUTH_SECRET");
 const ADMIN_EMAIL = readRequired("ADMIN_EMAIL").trim().toLowerCase();
 const REQUIRE_ADMIN_2FA = readBoolean("REQUIRE_ADMIN_2FA", true);
+// Whether to trust X-Forwarded-For as the real client IP. Should only be true
+// behind a reverse proxy that strips client-supplied XFF headers; otherwise a
+// caller can spoof their logged IP and rate-limit bucket.
+const TRUST_PROXY = readBoolean("TRUST_PROXY", false);
 
 if (BETTER_AUTH_SECRET.length < 32) {
   fail(
@@ -70,6 +74,7 @@ export const env = {
   BETTER_AUTH_SECRET,
   ADMIN_EMAIL,
   REQUIRE_ADMIN_2FA,
+  TRUST_PROXY,
   IS_PRODUCTION: PRODUCTION,
 } as const;
 

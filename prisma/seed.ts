@@ -69,10 +69,12 @@ async function main() {
     await prisma.project.create({
       data: {
         slug: "xh-do-home",
-        coverUrl:
-          "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
+        // coverUrl left null — uploaded via /admin once the seed admin logs in.
+        // Remote URLs would have to pass safeMediaUrl (cdn.xh.do or /uploads/*),
+        // which a fresh seed environment can't satisfy.
+        coverUrl: null,
         demoUrl: "https://xh.do",
-        repoUrl: "https://github.com/",
+        repoUrl: null,
         status: "live",
         sortOrder: 1,
         isFeatured: true,

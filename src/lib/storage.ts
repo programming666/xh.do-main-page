@@ -80,12 +80,64 @@ function sanitizeBaseName(input: string) {
 }
 
 function looksLikeMaliciousSvg(text: string): boolean {
-  // Conservative heuristic: any inline script or `on*=` attribute makes the
-  // SVG dangerous when served from our origin (logos render via <img>, but
-  // someone could embed via <object> / <iframe> later).
-  if (/<\s*script[\s>]/i.test(text)) return true;
-  if (/\son[a-z]+\s*=/i.test(text)) return true;
-  if (/javascript\s*:/i.test(text)) return true;
+  // Normalize: strip comments + CDATA, lowercase. Decoding HTML entities once
+  // so that obfuscation like `&#x6a;avascript:` collapses to `javascript:`.
+  const normalized = text
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, "")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isFinite(code) ? String.fromCharCode(code) : "";
+    })
+    .replace(/&#(\d+);/g, (_, dec) => {
+      const code = parseInt(dec, 10);
+      return Number.isFinite(code) ? String.fromCharCode(code) : "";
+    })
+    .toLowerCase();
+
+  // Tag-level deny list. SVG can host scripted content via several routes
+  // beyond <script>: foreignObject lets it embed HTML, <use href> can pull in
+  // remote SVG, animate/set can mutate any attribute (including href) at
+  // runtime, and <handler>/<listener> are scripted SMIL hooks.
+  const dangerousTags = [
+    /<\s*script\b/,
+    /<\s*foreignobject\b/,
+    /<\s*iframe\b/,
+    /<\s*embed\b/,
+    /<\s*object\b/,
+    /<\s*animate\b/,
+    /<\s*set\b/,
+    /<\s*handler\b/,
+    /<\s*listener\b/,
+  ];
+  for (const re of dangerousTags) {
+    if (re.test(normalized)) return true;
+  }
+
+  // Inline event handlers (onload, onclick, onmouseover, ...).
+  if (/\son[a-z]+\s*=/.test(normalized)) return true;
+
+  // Dangerous URL schemes anywhere they could become a request or executable
+  // context. We allow data: in plain text only, never as the value of an
+  // attribute that gets fetched/executed.
+  const dangerousScheme = /(?:href|xlink:href|src|action|formaction|background|poster|to|from|values|by)\s*=\s*["']?\s*(?:javascript|data|vbscript|file|jar)\s*:/;
+  if (dangerousScheme.test(normalized)) return true;
+
+  // Standalone javascript: / vbscript: anywhere (covers stray strings that
+  // could be plucked out by SMIL animation values, etc.).
+  if (/(?:^|[^a-z0-9])javascript\s*:/.test(normalized)) return true;
+  if (/(?:^|[^a-z0-9])vbscript\s*:/.test(normalized)) return true;
+
+  // <style> block with @import or expression() (CSS-based exfil / IE legacy).
+  if (/<\s*style\b[\s\S]*?(?:@import|expression\s*\()/.test(normalized)) return true;
+
+  // style="...url(javascript:...)..." inline.
+  if (/style\s*=[^>]*url\s*\(\s*["']?\s*(?:javascript|vbscript)\s*:/.test(normalized)) return true;
+
+  // External entities / DTD — block any DOCTYPE referencing a system identifier.
+  if (/<!doctype[^>]*\bsystem\b/.test(normalized)) return true;
+  if (/<!entity[^>]*\bsystem\b/.test(normalized)) return true;
+
   return false;
 }
 

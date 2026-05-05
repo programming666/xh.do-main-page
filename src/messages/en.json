@@ -154,7 +154,7 @@
     "twoFactorPrompt": "Enter the 6-digit code from your authenticator app.",
     "continue": "Continue",
     "changePassword": "Change password",
-    "changePasswordHint": "Enable 2FA first, then replace the initial ChangeMe123! placeholder with a strong password (>= 12 chars). All other active sessions will be signed out.",
+    "changePasswordHint": "Enable 2FA first, then replace the bootstrap placeholder password with a strong password (>= 12 chars). All other active sessions will be signed out.",
     "currentPassword": "Current password",
     "newPassword": "New password (>= 12 chars)",
     "confirmPassword": "Confirm new password",

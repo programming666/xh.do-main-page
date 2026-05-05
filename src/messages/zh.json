@@ -154,7 +154,7 @@
     "twoFactorPrompt": "请输入验证器应用中的 6 位动态验证码。",
     "continue": "继续",
     "changePassword": "修改密码",
-    "changePasswordHint": "建议先启用 2FA，然后用一个 12 位以上的强密码覆盖掉初始 ChangeMe123! 占位密码。所有其他活跃会话会被注销。",
+    "changePasswordHint": "建议先启用 2FA，再用一个 12 位以上的强密码覆盖掉首次部署时的占位密码。所有其他活跃会话会被注销。",
     "currentPassword": "当前密码",
     "newPassword": "新密码（≥ 12 位）",
     "confirmPassword": "再次输入新密码",

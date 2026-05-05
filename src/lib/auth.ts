@@ -2,6 +2,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor } from "better-auth/plugins";
+import { z } from "zod";
 
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
@@ -66,6 +67,12 @@ export const auth = betterAuth({
       locale: {
         type: "string",
         required: false,
+        // Restrict to the locales the app actually serves so a malicious
+        // updateUser call can't store an arbitrary string in the User row
+        // that later surfaces in <html lang> / link rel="alternate".
+        validator: {
+          input: z.enum(["zh", "en"]).optional(),
+        },
       },
     },
   },

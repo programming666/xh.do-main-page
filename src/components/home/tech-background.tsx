@@ -84,7 +84,10 @@ function SlideStack({ slides, activeIndex, active, style }: SlideStackProps) {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-[1400ms]"
           style={{
             ...style,
-            backgroundImage: `url(${item})`,
+            // Quote and escape the URL so admin-controlled values (which
+            // already pass `safeMediaUrl` validation) cannot break out of
+            // the CSS `url(...)` token, even if a value contains `"` or `\`.
+            backgroundImage: `url("${item.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`,
             opacity: index === visibleIndex ? 1 : 0,
           }}
         />

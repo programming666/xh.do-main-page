@@ -104,20 +104,17 @@ export async function ensureSiteSettings() {
   return prisma.siteSettings.create({
     data: {
       id: "default",
-      githubUrl: "https://github.com/",
+      githubUrl: null,
       showFriendLinks: true,
-      heroMediaUrl:
-        "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80",
-      heroMediaPlaylist:
-        "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80\nhttps://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=80\nhttps://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1600&q=80",
-      heroLightImageUrl:
-        "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80",
-      heroLightPlaylist:
-        "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80\nhttps://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1600&q=80",
-      heroDarkImageUrl:
-        "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80",
-      heroDarkPlaylist:
-        "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80\nhttps://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=80\nhttps://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1600&q=80",
+      // Hero media is empty by default — admin uploads to /uploads/* via the
+      // dashboard. Allowing arbitrary remote URLs (e.g. unsplash) would
+      // contradict the `safeMediaUrl` whitelist enforced on PATCH.
+      heroMediaUrl: null,
+      heroMediaPlaylist: null,
+      heroLightImageUrl: null,
+      heroLightPlaylist: null,
+      heroDarkImageUrl: null,
+      heroDarkPlaylist: null,
       heroImageIntervalMs: 4500,
       logoUrl: null,
       accentColor: "#4cc9ff",
