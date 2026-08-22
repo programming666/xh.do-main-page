@@ -31,13 +31,17 @@ export function SecuritySettings() {
             onClick={async () => {
               setError(null);
               setMessage(null);
-              const result = await authClient.twoFactor.enable({ password });
+              const result = await authClient.twoFactor.enable({ password, method: "totp" });
               if (result.error) {
                 setError(result.error.message ?? t("enable2faFailed"));
                 return;
               }
-              setTotpUri(result.data?.totpURI ?? null);
-              setBackupCodes(result.data?.backupCodes ?? []);
+              if (result.data?.method !== "totp") {
+                setError(t("enable2faFailed"));
+                return;
+              }
+              setTotpUri(result.data.totpURI);
+              setBackupCodes(result.data.backupCodes);
               setMessage(t("qrReady"));
             }}
           >
