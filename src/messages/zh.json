@@ -164,5 +164,9 @@
     "passwordSameAsCurrent": "新密码不能与当前密码相同。",
     "passwordChanged": "密码已更新，其他设备的会话已被注销。",
     "changePasswordFailed": "修改密码失败。"
+},
+  "noscript": {
+    "title": "本站需要启用 JavaScript",
+    "description": "本站依赖 JavaScript 提供动画、深浅色主题切换和后台交互。请在浏览器设置中开启 JavaScript 后刷新页面。当前静态内容仍可阅读，但部分功能将无法使用。"
   }
 }

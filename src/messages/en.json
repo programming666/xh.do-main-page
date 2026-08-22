@@ -164,5 +164,9 @@
     "passwordSameAsCurrent": "New password must differ from the current one.",
     "passwordChanged": "Password updated. All other sessions have been signed out.",
     "changePasswordFailed": "Failed to change password."
+},
+  "noscript": {
+    "title": "JavaScript is required",
+    "description": "This site relies on JavaScript for animations, theme switching and the admin tools. Please enable JavaScript in your browser settings and reload this page. Static content remains readable, but some features will not work."
   }
 }

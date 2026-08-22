@@ -53,15 +53,31 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  const [messages, site, t] = await Promise.all([
+  const [messages, site, t, tNoScript] = await Promise.all([
     getMessages(),
     getSiteSettings(locale as AppLocale),
     getTranslations({ locale, namespace: "hero" }),
+    getTranslations({ locale, namespace: "noscript" }),
   ]);
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <ThemeProvider>
+        <noscript>
+          <div className="px-4 pb-4 pt-24 sm:px-6 lg:px-10">
+            <div
+              role="alert"
+              className="rounded-2xl border border-amber-300/40 bg-amber-500/15 px-5 py-4 text-amber-50 shadow-lg backdrop-blur-sm"
+            >
+              <p className="text-sm font-semibold sm:text-base">
+                {tNoScript("title")}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-amber-100/85 sm:text-sm">
+                {tNoScript("description")}
+              </p>
+            </div>
+          </div>
+        </noscript>
         <div className="min-h-screen">
           <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-4 py-4 sm:px-6 lg:px-10">
             <div className="pointer-events-auto flex items-center gap-3">
