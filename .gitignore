@@ -51,5 +51,8 @@ next-env.d.ts
 !/public/uploads/.gitkeep
 
 # Claude Code workspace state
+
+# pi helper scripts (use env-var SSH_PASSWORD, never commit deploy creds)
+/scripts/_pi_ssh.py
 /.claude/
 CLAUDE.md
