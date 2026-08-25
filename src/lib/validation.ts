@@ -140,6 +140,14 @@ const localeContentSchema = z.object({
       .refine(isSafeHref, { message: SAFE_HREF_MESSAGE }),
   ),
   footerText: z.preprocess(normalizeString, z.string().default("")),
+  // metaTitle moved here from the top-level SiteSettings metaTitle so each
+  // locale can show its own tab title in the browser.
+  metaTitle: cleanedOptionalString,
+  metaDescription: cleanedOptionalString,
+  ogTitle: cleanedOptionalString,
+  ogDescription: cleanedOptionalString,
+  twitterTitle: cleanedOptionalString,
+  twitterDescription: cleanedOptionalString,
 });
 
 const translationsSchema = z.object({
@@ -149,8 +157,13 @@ const translationsSchema = z.object({
 
 export const siteSettingsSchema = z.object({
   siteName: cleanedRequiredString,
-  metaTitle: cleanedOptionalString,
+  // metaTitle moved to translations.<locale>.metaTitle (per-locale tab title)
   githubUrl: safeHrefOptional,
+  // Per-site OG image override; falls back to the locale-specific
+  // opengraph-image.tsx-generated default when empty.
+  ogImageUrl: safeMediaOptional,
+  // Twitter handle shown as `@handle` on the Twitter card.
+  twitterHandle: cleanedOptionalString,
   logoMode: z.enum(["url", "upload"]),
   logoUrl: safeMediaOptional,
   showFriendLinks: z.boolean().default(true),

@@ -25,7 +25,7 @@ export default async function FriendsPage({
             </div>
             <NextLink
               href={`/${locale}`}
-              className="rounded-full border border-white/10 px-5 py-2.5 text-sm font-medium transition-colors duration-[2000ms] ease-linear hover:bg-white/5"
+              className="rounded-full border border-white/10 px-5 py-2.5 text-sm font-medium transition-colors duration-200 ease-out hover:bg-white/5"
             >
               {t("backHome")}
             </NextLink>
@@ -38,7 +38,7 @@ export default async function FriendsPage({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="group flex gap-4 rounded-2xl border border-white/10 bg-black/10 p-5 transition-all duration-[2000ms] ease-linear hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:shadow-[0_0_24px_rgba(76,201,255,0.12)]"
+                className="group flex gap-4 rounded-2xl border border-white/10 bg-black/10 p-5 transition-all duration-200 ease-out hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:shadow-[0_0_24px_rgba(76,201,255,0.12)]"
               >
                 {item.imageUrl ? (
                   <Image
@@ -55,7 +55,7 @@ export default async function FriendsPage({
                   </div>
                 )}
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-                  <span className="text-lg font-medium transition-colors duration-[2000ms] ease-linear group-hover:text-cyan-300">
+                  <span className="text-lg font-medium transition-colors duration-200 ease-out group-hover:text-cyan-300">
                     {item.label}
                   </span>
                   <span className="truncate text-sm text-[color:var(--muted)]">

@@ -87,80 +87,92 @@ model TwoFactor {
 }
 
 model SiteSettings {
-  id                   String                    @id @default("default")
-  siteName             String                    @default("xh.do")
-  metaTitle            String?
-  githubUrl            String?
-  logoMode             String                    @default("url")
-  logoUrl              String?
-  showFriendLinks      Boolean                   @default(true)
-  heroMediaType        String                    @default("image")
-  heroMediaMode        String                    @default("url")
-  heroMediaUrl         String?
-  heroMediaPlaylist    String?
-  heroLightImageUrl    String?
-  heroLightPlaylist    String?
-  heroDarkImageUrl     String?
-  heroDarkPlaylist     String?
-  heroImageIntervalMs  Int                       @default(4500)
-  heroPosterUrl        String?
-  heroOverlayOpacity   Int                       @default(55)
-  heroEffect           String                    @default("scroll-pan")
-  accentColor          String                    @default("#4cc9ff")
-  gradientEnabled      Boolean                   @default(false)
-  gradientStart        String                    @default("#1297ff")
-  gradientEnd          String                    @default("#7b61ff")
-  gradientAngle        Int                       @default(135)
-  backgroundFallback   String                    @default("/uploads/backgrounds/default-grid.jpg")
-  updatedAt            DateTime                  @updatedAt
-  createdAt            DateTime                  @default(now())
-  translations         SiteSettingsTranslation[]
+  id                  String                    @id @default("default")
+  siteName            String                    @default("xh.do")
+  githubUrl           String?
+  // Custom Open Graph image (1200x630). When set, used as both og:image and
+  // twitter:image. Falls back to the dynamic /[locale]/opengraph-image route.
+  ogImageUrl          String?
+  // Twitter handle (without leading @) used as twitter:site. Optional.
+  twitterHandle       String?
+  logoMode            String                    @default("url")
+  logoUrl             String?
+  showFriendLinks     Boolean                   @default(true)
+  heroMediaType       String                    @default("image")
+  heroMediaMode       String                    @default("url")
+  heroMediaUrl        String?
+  heroMediaPlaylist   String?
+  heroLightImageUrl   String?
+  heroLightPlaylist   String?
+  heroDarkImageUrl    String?
+  heroDarkPlaylist    String?
+  heroImageIntervalMs Int                       @default(4500)
+  heroPosterUrl       String?
+  heroOverlayOpacity  Int                       @default(55)
+  heroEffect          String                    @default("scroll-pan")
+  accentColor         String                    @default("#4cc9ff")
+  gradientEnabled     Boolean                   @default(false)
+  gradientStart       String                    @default("#1297ff")
+  gradientEnd         String                    @default("#7b61ff")
+  gradientAngle       Int                       @default(135)
+  backgroundFallback  String                    @default("/uploads/backgrounds/default-grid.jpg")
+  updatedAt           DateTime                  @updatedAt
+  createdAt           DateTime                  @default(now())
+  translations        SiteSettingsTranslation[]
 }
 
 model SiteSettingsTranslation {
-  id              String       @id @default(cuid())
-  siteSettingsId  String
-  locale          String
-  eyebrow         String       @default("Personal Site")
-  headline        String
-  subheadline     String
-  aboutTitle      String
-  aboutBody       String
-  primaryLabel    String
-  primaryHref     String
-  secondaryLabel  String
-  secondaryHref   String
-  footerText      String       @default("")
-  siteSettings    SiteSettings @relation(fields: [siteSettingsId], references: [id], onDelete: Cascade)
+  id                 String       @id @default(cuid())
+  siteSettingsId     String
+  locale             String
+  eyebrow            String       @default("Personal Site")
+  headline           String
+  subheadline        String
+  aboutTitle         String
+  aboutBody          String
+  primaryLabel       String
+  primaryHref        String
+  secondaryLabel     String
+  secondaryHref      String
+  footerText         String       @default("")
+  // Per-locale metadata & social card overrides. All optional — empty falls
+  // back through the chain (translation → translation.headline → siteName).
+  metaTitle          String?
+  metaDescription    String?
+  ogTitle            String?
+  ogDescription      String?
+  twitterTitle       String?
+  twitterDescription String?
+  siteSettings       SiteSettings @relation(fields: [siteSettingsId], references: [id], onDelete: Cascade)
 
   @@unique([siteSettingsId, locale])
 }
 
 model Project {
-  id          String               @id @default(cuid())
-  slug        String               @unique
-  coverMode   String               @default("url")
-  coverUrl    String?
-  demoUrl     String?
-  repoUrl     String?
-  status      String               @default("active")
-  sortOrder   Int                  @default(0)
-  isFeatured  Boolean              @default(false)
-  isPublished Boolean              @default(true)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  id           String               @id @default(cuid())
+  slug         String               @unique
+  coverMode    String               @default("url")
+  coverUrl     String?
+  demoUrl      String?
+  repoUrl      String?
+  status       String               @default("active")
+  sortOrder    Int                  @default(0)
+  isFeatured   Boolean              @default(false)
+  isPublished  Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
   translations ProjectTranslation[]
 }
 
 model ProjectTranslation {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   projectId   String
   locale      String
   title       String
   summary     String
   description String
   techStack   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, locale])
 }

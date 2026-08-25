@@ -14,6 +14,9 @@ export function AdminLoginForm({ locale }: { locale: string }) {
 
   return (
     <form
+      method="post"
+      noValidate
+      aria-describedby={error ? "login-error" : undefined}
       className="glass-panel space-y-4 rounded-3xl p-8"
       onSubmit={async (event) => {
         event.preventDefault();
@@ -31,20 +34,50 @@ export function AdminLoginForm({ locale }: { locale: string }) {
         }
       }}
     >
-      <div>
-        <h2 className="text-2xl font-semibold">{t("loginTitle")}</h2>
+      <header>
+        <h1 className="text-2xl font-semibold">{t("loginTitle")}</h1>
         <p className="mt-2 text-sm text-[color:var(--muted)]">{t("loginHint")}</p>
-      </div>
+      </header>
       <label className="block space-y-2">
         <span className="text-sm">{t("email")}</span>
-        <input type="email" autoComplete="username" className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 outline-none" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input
+          type="email"
+          autoComplete="username"
+          inputMode="email"
+          required
+          aria-invalid={error ? "true" : undefined}
+          aria-label={t("email")}
+          placeholder={t("email")}
+          className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 outline-none"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
       </label>
       <label className="block space-y-2">
         <span className="text-sm">{t("password")}</span>
-        <input type="password" autoComplete="current-password" className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 outline-none" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input
+          type="password"
+          autoComplete="current-password"
+          required
+          aria-invalid={error ? "true" : undefined}
+          aria-label={t("password")}
+          placeholder={t("password")}
+          className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 outline-none"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
       </label>
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-      <button className="w-full rounded-2xl bg-cyan-400 px-4 py-3 font-medium text-slate-950" type="submit" disabled={loading}>
+      {error ? (
+        <p id="login-error" role="alert" className="text-sm text-rose-300">
+          {error}
+        </p>
+      ) : null}
+      <button
+        className="w-full rounded-2xl bg-cyan-400 px-4 py-3 font-medium text-slate-950 disabled:opacity-60"
+        type="submit"
+        disabled={loading}
+        aria-busy={loading}
+      >
         {loading ? "..." : t("loginTitle")}
       </button>
     </form>

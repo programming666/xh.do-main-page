@@ -19,8 +19,9 @@ export default async function SiteSettingsPage({
       <SiteSettingsForm
         initialData={{
           siteName: site.siteName,
-          metaTitle: site.metaTitle ?? "",
           githubUrl: site.githubUrl ?? "",
+          ogImageUrl: site.ogImageUrl ?? "",
+          twitterHandle: site.twitterHandle ?? "",
           logoMode: site.logoMode as "url" | "upload",
           logoUrl: site.logoUrl ?? "",
           translations: {
@@ -35,6 +36,12 @@ export default async function SiteSettingsPage({
               secondaryLabel: zh?.secondaryLabel ?? "",
               secondaryHref: zh?.secondaryHref ?? "",
               footerText: zh?.footerText ?? "",
+              metaTitle: zh?.metaTitle ?? "",
+              metaDescription: zh?.metaDescription ?? "",
+              ogTitle: zh?.ogTitle ?? "",
+              ogDescription: zh?.ogDescription ?? "",
+              twitterTitle: zh?.twitterTitle ?? "",
+              twitterDescription: zh?.twitterDescription ?? "",
             },
             en: {
               eyebrow: en?.eyebrow ?? "",
@@ -47,6 +54,12 @@ export default async function SiteSettingsPage({
               secondaryLabel: en?.secondaryLabel ?? "",
               secondaryHref: en?.secondaryHref ?? "",
               footerText: en?.footerText ?? "",
+              metaTitle: en?.metaTitle ?? "",
+              metaDescription: en?.metaDescription ?? "",
+              ogTitle: en?.ogTitle ?? "",
+              ogDescription: en?.ogDescription ?? "",
+              twitterTitle: en?.twitterTitle ?? "",
+              twitterDescription: en?.twitterDescription ?? "",
             },
           },
         }}

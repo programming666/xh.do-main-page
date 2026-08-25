@@ -33,7 +33,11 @@ const PAGE_CSP = [
   "img-src 'self' https://cdn.xh.do data: blob:",
   "media-src 'self' https://cdn.xh.do blob:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+// Cloudflare Web Analytics (`beacon.min.js`) ships from
+  // static.cloudflareinsights.com. Whitelisted here so the script (and its
+  // accompanying `connect-src` beacon POSTs) aren't blocked by our own CSP.
+  "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
+  "connect-src 'self' https://static.cloudflareinsights.com",
   // React 19 + react-compiler still emit hydration scripts inline.
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",

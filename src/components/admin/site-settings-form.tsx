@@ -16,12 +16,21 @@ type LocaleContent = {
   secondaryLabel: string;
   secondaryHref: string;
   footerText: string;
+  // Per-locale metadata & social card overrides. Empty values fall back
+  // through the chain (translation -> headline -> siteName) at render time.
+  metaTitle: string;
+  metaDescription: string;
+  ogTitle: string;
+  ogDescription: string;
+  twitterTitle: string;
+  twitterDescription: string;
 };
 
 type SiteFormData = {
   siteName: string;
-  metaTitle: string;
   githubUrl: string;
+  ogImageUrl: string;
+  twitterHandle: string;
   logoMode: "url" | "upload";
   logoUrl: string;
   translations: {
@@ -86,12 +95,17 @@ export function SiteSettingsForm({ initialData }: { initialData: SiteFormData })
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <input className={`${fieldClassName} md:col-span-2`} value={form.siteName} onChange={(e) => setForm({ ...form, siteName: e.target.value })} placeholder={t("siteName")} />
-          <label className="block space-y-2 md:col-span-2">
-            <span className="block text-sm font-medium text-foreground">{t("metaTitle")}</span>
-            <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("metaTitleHint")}</span>
-            <input className={fieldClassName} value={form.metaTitle} onChange={(e) => setForm({ ...form, metaTitle: e.target.value })} placeholder={form.siteName || t("metaTitle")} />
-          </label>
           <input className={`${fieldClassName} md:col-span-2`} value={form.githubUrl} onChange={(e) => setForm({ ...form, githubUrl: e.target.value })} placeholder={t("githubUrl")} />
+          <label className="block space-y-2 md:col-span-2">
+            <span className="block text-sm font-medium text-foreground">{t("ogImageUrl")}</span>
+            <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("ogImageUrlHint")}</span>
+            <input className={fieldClassName} value={form.ogImageUrl} onChange={(e) => setForm({ ...form, ogImageUrl: e.target.value })} placeholder={t("ogImageUrlPlaceholder")} />
+          </label>
+          <label className="block space-y-2 md:col-span-2">
+            <span className="block text-sm font-medium text-foreground">{t("twitterHandle")}</span>
+            <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("twitterHandleHint")}</span>
+            <input className={fieldClassName} value={form.twitterHandle} onChange={(e) => setForm({ ...form, twitterHandle: e.target.value })} placeholder={t("twitterHandlePlaceholder")} />
+          </label>
           <select className={selectClassName} value={form.logoMode} onChange={(e) => setForm({ ...form, logoMode: e.target.value as "url" | "upload" })}>
             <option value="url">{t("logoFromUrl")}</option>
             <option value="upload">{t("logoFromUpload")}</option>
@@ -118,6 +132,36 @@ export function SiteSettingsForm({ initialData }: { initialData: SiteFormData })
               <span className="block text-sm font-medium text-foreground">{t("footerText")}</span>
               <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("footerTextHint")}</span>
               <textarea className={textareaClassName} value={form.translations[entryLocale].footerText} onChange={(e) => setForm({ ...form, translations: { ...form.translations, [entryLocale]: { ...form.translations[entryLocale], footerText: e.target.value } } })} placeholder={t("footerTextPlaceholder")} />
+            </label>
+            <div className="md:col-span-2 border-t border-white/10 pt-4">
+              <p className="text-sm font-medium text-foreground">{t("seoTitle")}</p>
+              <p className="mt-1 text-xs leading-5 text-[color:var(--muted)]">{t("seoHint")}</p>
+            </div>
+            <label className="block space-y-2 md:col-span-2">
+              <span className="block text-sm font-medium text-foreground">{t("metaTitle")}</span>
+              <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("metaTitleHint")}</span>
+              <input className={fieldClassName} value={form.translations[entryLocale].metaTitle} onChange={(e) => setForm({ ...form, translations: { ...form.translations, [entryLocale]: { ...form.translations[entryLocale], metaTitle: e.target.value } } })} placeholder={form.siteName || t("metaTitle")} />
+            </label>
+            <label className="block space-y-2 md:col-span-2">
+              <span className="block text-sm font-medium text-foreground">{t("metaDescription")}</span>
+              <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("metaDescriptionHint")}</span>
+              <textarea className={`${textareaClassName} min-h-20`} value={form.translations[entryLocale].metaDescription} onChange={(e) => setForm({ ...form, translations: { ...form.translations, [entryLocale]: { ...form.translations[entryLocale], metaDescription: e.target.value } } })} placeholder={t("metaDescriptionPlaceholder")} />
+            </label>
+            <label className="block space-y-2 md:col-span-2">
+              <span className="block text-sm font-medium text-foreground">{t("ogTitle")}</span>
+              <input className={fieldClassName} value={form.translations[entryLocale].ogTitle} onChange={(e) => setForm({ ...form, translations: { ...form.translations, [entryLocale]: { ...form.translations[entryLocale], ogTitle: e.target.value } } })} placeholder={t("ogTitlePlaceholder")} />
+            </label>
+            <label className="block space-y-2 md:col-span-2">
+              <span className="block text-sm font-medium text-foreground">{t("ogDescription")}</span>
+              <textarea className={`${textareaClassName} min-h-20`} value={form.translations[entryLocale].ogDescription} onChange={(e) => setForm({ ...form, translations: { ...form.translations, [entryLocale]: { ...form.translations[entryLocale], ogDescription: e.target.value } } })} placeholder={t("ogDescriptionPlaceholder")} />
+            </label>
+            <label className="block space-y-2 md:col-span-2">
+              <span className="block text-sm font-medium text-foreground">{t("twitterTitle")}</span>
+              <input className={fieldClassName} value={form.translations[entryLocale].twitterTitle} onChange={(e) => setForm({ ...form, translations: { ...form.translations, [entryLocale]: { ...form.translations[entryLocale], twitterTitle: e.target.value } } })} placeholder={t("twitterTitlePlaceholder")} />
+            </label>
+            <label className="block space-y-2 md:col-span-2">
+              <span className="block text-sm font-medium text-foreground">{t("twitterDescription")}</span>
+              <textarea className={`${textareaClassName} min-h-20`} value={form.translations[entryLocale].twitterDescription} onChange={(e) => setForm({ ...form, translations: { ...form.translations, [entryLocale]: { ...form.translations[entryLocale], twitterDescription: e.target.value } } })} placeholder={t("twitterDescriptionPlaceholder")} />
             </label>
           </div>
         </section>

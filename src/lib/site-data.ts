@@ -13,6 +13,14 @@ type SiteTranslation = {
   secondaryLabel: string;
   secondaryHref: string;
   footerText: string;
+  // Per-locale metadata & social card overrides. All optional; the runtime
+  // chains fallbacks (translation.metaTitle -> translation.headline -> siteName).
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  twitterTitle?: string | null;
+  twitterDescription?: string | null;
 };
 
 const defaultTranslations: Record<AppLocale, SiteTranslation> = {
@@ -30,6 +38,15 @@ const defaultTranslations: Record<AppLocale, SiteTranslation> = {
     secondaryLabel: "",
     secondaryHref: "",
     footerText: "",
+    metaTitle: "xh.do 个人主页",
+    metaDescription:
+      "xh.do 个人主页 —— 在线可管理的科技感首页，支持中英双语、明暗主题、项目展示与友链。",
+    ogTitle: "xh.do 个人主页",
+    ogDescription:
+      "聚焦前端工程、产品表达与技术体验的持续更新的个人数字空间。",
+    twitterTitle: "xh.do 个人主页",
+    twitterDescription:
+      "聚焦前端工程、产品表达与技术体验的持续更新的个人数字空间。",
   },
   en: {
     locale: "en",
@@ -45,6 +62,15 @@ const defaultTranslations: Record<AppLocale, SiteTranslation> = {
     secondaryLabel: "",
     secondaryHref: "",
     footerText: "",
+    metaTitle: "xh.do · Personal site",
+    metaDescription:
+      "The xh.do personal homepage — an online-managed, cinematic single-page site with bilingual support, light/dark themes, project showcase and friend links.",
+    ogTitle: "xh.do · Personal site",
+    ogDescription:
+      "A modern, evolving digital space for projects, ideas and technical writing.",
+    twitterTitle: "xh.do · Personal site",
+    twitterDescription:
+      "A modern, evolving digital space for projects, ideas and technical writing.",
   },
 };
 
@@ -122,6 +148,8 @@ export async function ensureSiteSettings() {
       gradientStart: "#1297ff",
       gradientEnd: "#7b61ff",
       gradientAngle: 135,
+      ogImageUrl: null,
+      twitterHandle: null,
       translations: {
         create: Object.values(defaultTranslations),
       },

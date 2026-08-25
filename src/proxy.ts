@@ -109,7 +109,18 @@ export default function middleware(request: NextRequest) {
 
   return stripUpstreamPort(intlMiddleware(request), request);
 }
-
 export const config = {
-  matcher: ["/", "/(zh|en)/:path*", "/((?!api|_next|.*\\..*).*)"],
+  // Exclude Next.js metadata file routes (icon/apple-icon/opengraph-image/
+  // twitter-image/sitemap/robots/manifest/favicon) from the next-intl locale
+  // rewrite - these MUST live at the site root, not under /[locale]/, otherwise
+  // browsers see a 307 redirect to a non-existent /zh/icon (404) and iOS
+  // home-screen icons / social-share previews silently break.
+  // The default `((?!api|_next|.*\..*).*)` already skips static files via the
+  // extension filter, but the metadata routes above don't always have an
+  // extension, so we list them explicitly in the negative lookahead.
+  matcher: [
+    "/",
+    "/(zh|en)/:path*",
+    "/((?!api|_next|icon|apple-icon|opengraph-image|twitter-image|manifest\.json|sitemap\.xml|robots\.txt|favicon\.ico).*)",
+  ],
 };

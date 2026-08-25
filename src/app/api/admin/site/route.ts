@@ -26,8 +26,9 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
 
   const mergedCandidate = {
     siteName: parsed.data.siteName ?? existing.siteName,
-    metaTitle: parsed.data.metaTitle ?? existing.metaTitle,
     githubUrl: parsed.data.githubUrl ?? existing.githubUrl,
+    ogImageUrl: parsed.data.ogImageUrl ?? existing.ogImageUrl,
+    twitterHandle: parsed.data.twitterHandle ?? existing.twitterHandle,
     logoMode: parsed.data.logoMode ?? existing.logoMode,
     logoUrl: parsed.data.logoUrl ?? existing.logoUrl,
     showFriendLinks: parsed.data.showFriendLinks ?? existing.showFriendLinks,
@@ -92,6 +93,30 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
           parsed.data.translations?.zh?.footerText ??
           existingTranslations.zh?.footerText ??
           "",
+        metaTitle:
+          parsed.data.translations?.zh?.metaTitle ??
+          existingTranslations.zh?.metaTitle ??
+          null,
+        metaDescription:
+          parsed.data.translations?.zh?.metaDescription ??
+          existingTranslations.zh?.metaDescription ??
+          null,
+        ogTitle:
+          parsed.data.translations?.zh?.ogTitle ??
+          existingTranslations.zh?.ogTitle ??
+          null,
+        ogDescription:
+          parsed.data.translations?.zh?.ogDescription ??
+          existingTranslations.zh?.ogDescription ??
+          null,
+        twitterTitle:
+          parsed.data.translations?.zh?.twitterTitle ??
+          existingTranslations.zh?.twitterTitle ??
+          null,
+        twitterDescription:
+          parsed.data.translations?.zh?.twitterDescription ??
+          existingTranslations.zh?.twitterDescription ??
+          null,
       },
       en: {
         eyebrow:
@@ -134,6 +159,30 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
           parsed.data.translations?.en?.footerText ??
           existingTranslations.en?.footerText ??
           "",
+        metaTitle:
+          parsed.data.translations?.en?.metaTitle ??
+          existingTranslations.en?.metaTitle ??
+          null,
+        metaDescription:
+          parsed.data.translations?.en?.metaDescription ??
+          existingTranslations.en?.metaDescription ??
+          null,
+        ogTitle:
+          parsed.data.translations?.en?.ogTitle ??
+          existingTranslations.en?.ogTitle ??
+          null,
+        ogDescription:
+          parsed.data.translations?.en?.ogDescription ??
+          existingTranslations.en?.ogDescription ??
+          null,
+        twitterTitle:
+          parsed.data.translations?.en?.twitterTitle ??
+          existingTranslations.en?.twitterTitle ??
+          null,
+        twitterDescription:
+          parsed.data.translations?.en?.twitterDescription ??
+          existingTranslations.en?.twitterDescription ??
+          null,
       },
     },
   };
@@ -148,8 +197,9 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
     where: { id: "default" },
     update: {
       siteName: data.siteName,
-      metaTitle: data.metaTitle,
       githubUrl: data.githubUrl,
+      ogImageUrl: data.ogImageUrl,
+      twitterHandle: data.twitterHandle,
       logoMode: data.logoMode,
       logoUrl: data.logoUrl,
       showFriendLinks: data.showFriendLinks,
@@ -181,8 +231,9 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
     create: {
       id: "default",
       siteName: data.siteName,
-      metaTitle: data.metaTitle,
       githubUrl: data.githubUrl,
+      ogImageUrl: data.ogImageUrl,
+      twitterHandle: data.twitterHandle,
       logoMode: data.logoMode,
       logoUrl: data.logoUrl,
       showFriendLinks: data.showFriendLinks,

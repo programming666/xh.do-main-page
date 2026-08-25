@@ -20,22 +20,73 @@ export async function generateMetadata({
   params: Promise<{ locale: AppLocale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  // Without this guard, Next.js's RSC chain calls generateMetadata for metadata
+  // routes (e.g. /apple-icon, /robots.txt) with `locale = undefined`. The
+  // resulting SiteSettings query returns translation=undefined, which then
+  // crashes any chained read of translation.* in the body below.
+  if (!hasLocale(routing.locales, locale)) {
+    return {};
+  }
   const site = await getSiteSettings(locale);
   const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-  const tabTitle = site.metaTitle?.trim() ? site.metaTitle : site.siteName;
+  const t = site.translation;
+  // Chain: translation field -> translation.headline -> siteName
+  const tabTitle = t.metaTitle?.trim() ? t.metaTitle : t.headline || site.siteName;
+  const description =
+    t.metaDescription?.trim() ||
+    t.subheadline ||
+    site.siteName;
   // Bust favicon cache whenever site settings are saved. Browsers cache
   // favicons aggressively by URL; appending the SiteSettings.updatedAt epoch
   // forces a re-fetch the moment the admin saves a new logo.
   const iconVersion = site.updatedAt.getTime();
   const iconUrl = new URL(`/icon?v=${iconVersion}`, baseUrl).toString();
+  const ogImageUrl = new URL(
+    `/opengraph-image?locale=${locale}&v=${iconVersion}`,
+    baseUrl,
+  ).toString();
+  const twitterHandle = site.twitterHandle?.trim();
+  const twitterCreator = twitterHandle ? `@${twitterHandle.replace(/^@+/, "")}` : undefined;
 
   return {
     metadataBase: new URL(baseUrl),
     title: tabTitle,
-    description: site.translation.subheadline,
+    description,
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        zh: "/zh",
+        en: "/en",
+        "x-default": "/zh",
+      },
+    },
     icons: {
       icon: [{ url: iconUrl }],
       apple: [{ url: iconUrl }],
+    },
+    openGraph: {
+      type: "website",
+      locale: locale === "zh" ? "zh_CN" : "en_US",
+      url: new URL(`/${locale}`, baseUrl).toString(),
+      siteName: site.siteName,
+      title: t.ogTitle?.trim() || tabTitle,
+      description: t.ogDescription?.trim() || description,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: t.ogTitle?.trim() || tabTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t.twitterTitle?.trim() || tabTitle,
+      description: t.twitterDescription?.trim() || description,
+      images: [ogImageUrl],
+      ...(twitterCreator ? { creator: twitterCreator } : {}),
+      ...(twitterHandle ? { site: twitterCreator } : {}),
     },
   };
 }

@@ -40,13 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local SQLite DB & journals — NEVER commit production data
+# local SQLite DB & journals â€?NEVER commit production data
 /prisma/dev.db
 /prisma/dev.db-journal
 /prisma/*.db
 /prisma/*.db-journal
 
-# user-uploaded media (logos, backgrounds, project covers) — runtime content
+# user-uploaded media (logos, backgrounds, project covers) â€?runtime content
 /public/uploads/*
 !/public/uploads/.gitkeep
 
@@ -56,3 +56,10 @@ next-env.d.ts
 /scripts/_pi_ssh.py
 /.claude/
 CLAUDE.md
+
+# Playwright MCP ephemeral state (page snapshots, console logs)
+/.playwright-mcp/
+
+# One-shot migration patchers
+/scripts/_patch_*.py
+

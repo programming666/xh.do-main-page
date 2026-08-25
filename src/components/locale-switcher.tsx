@@ -23,19 +23,26 @@ export function LocaleSwitcher() {
   const searchParams = useSearchParams();
 
   return (
-    <div className="inline-flex rounded-full border border-slate-200/70 bg-white/85 p-1 text-sm shadow-[0_16px_48px_rgba(15,23,42,0.08)] transition-colors dark:border-white/10 dark:bg-slate-950/55">
+    <div
+      role="group"
+      aria-label={t("language")}
+      className="inline-flex rounded-full border border-slate-200/70 bg-white/85 p-1 text-sm shadow-[0_16px_48px_rgba(15,23,42,0.08)] transition-colors dark:border-white/10 dark:bg-slate-950/55"
+    >
       {(["zh", "en"] as const).map((item) => {
         const active = locale === item;
+        const label = item === "zh" ? "中文" : "English";
         return (
           <button
             key={item}
             type="button"
+            aria-current={active ? "true" : undefined}
+            aria-label={active ? `${label}（${t("language")}）` : label}
             onClick={() => {
               const nextPath = buildLocalePath(pathname, item);
               const query = searchParams.toString();
               router.replace(query ? `${nextPath}?${query}` : nextPath);
             }}
-            className={`rounded-full px-3 py-1.5 transition-all duration-[2000ms] ease-linear ${
+            className={`rounded-full px-3 py-1.5 transition-all duration-200 ease-out ${
               active
                 ? "bg-slate-950 text-white shadow-sm dark:bg-white/12 dark:text-white"
                 : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/8"
@@ -45,7 +52,6 @@ export function LocaleSwitcher() {
           </button>
         );
       })}
-      <span className="sr-only">{t("language")}</span>
     </div>
   );
 }
