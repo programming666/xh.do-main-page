@@ -102,7 +102,7 @@ export function SiteSettingsForm({ initialData }: { initialData: SiteFormData })
             <input className={fieldClassName} value={form.ogImageUrl} onChange={(e) => setForm({ ...form, ogImageUrl: e.target.value })} placeholder={t("ogImageUrlPlaceholder")} />
           </label>
           <div className="space-y-1 md:col-span-2">
-            <FilePicker accept="image/png,image/jpeg" onSelect={async (file) => {
+            <FilePicker accept="image/*" onSelect={async (file) => {
               const url = await upload("og", file);
               if (url) setForm((prev) => ({ ...prev, ogImageUrl: url }));
             }} />

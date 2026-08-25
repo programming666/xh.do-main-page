@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
+import sharp from "sharp";
 import { hasLocale } from "next-intl";
 
 import { ensureSiteSettings } from "@/lib/site-data";
@@ -26,6 +27,21 @@ function toAbsoluteUrl(url: string | null | undefined) {
   }
   const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
   return new URL(url, base).toString();
+}
+
+async function resolveBgSrc(rawUrl: string | null | undefined) {
+  if (!rawUrl) return null;
+  if (rawUrl.startsWith("data:")) return rawUrl;
+  // Satori's own image loader can only decode PNG/JPEG. Fetch the bytes here
+  // and normalize through sharp: webp/avif are converted to PNG (data URI) so
+  // any URL the admin configures still renders, and EXIF rotation is applied.
+  const res = await fetch(rawUrl, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`og background fetch failed: ${rawUrl} -> ${res.status}`);
+  }
+  const buf = Buffer.from(await res.arrayBuffer());
+  const png = await sharp(buf).rotate().png().toBuffer();
+  return `data:image/png;base64,${png.toString("base64")}`;
 }
 
 export default async function TwitterImage({
@@ -55,6 +71,7 @@ export default async function TwitterImage({
     translation?.subheadline ||
     site.siteName;
   const bgUrl = toAbsoluteUrl(site.ogImageUrl);
+  const bgSrc = await resolveBgSrc(bgUrl);
   const handle = site.twitterHandle?.trim();
   const handleDisplay = handle ? `@${handle.replace(/^@+/, "")}` : null;
 
@@ -139,10 +156,10 @@ export default async function TwitterImage({
   );
 
   return new ImageResponse(
-    bgUrl ? (
+    bgSrc ? (
       <div style={{ position: "relative", display: "flex", width: "100%", height: "100%" }}>
         <img
-          src={bgUrl}
+          src={bgSrc}
           alt=""
           style={{
             position: "absolute",
