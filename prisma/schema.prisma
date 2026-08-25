@@ -54,12 +54,18 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  // better-auth 1.7 requires a non-null issuer on every account row. Credential
+  // accounts get the synthetic "local:credential" issuer; OAuth providers use
+  // their verified discovery issuer. The compound (issuer, accountId) unique
+  // index is added in a follow-up migration after the backfill below.
+  issuer                String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 
   @@index([userId])
   @@map("account")
 }
+
 
 model Verification {
   id         String   @id
