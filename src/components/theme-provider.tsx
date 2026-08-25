@@ -30,17 +30,20 @@ export function ThemeProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") {
-      return "dark";
-    }
+// The initial render must match SSR exactly to avoid a React hydration
+  // mismatch, so we seed the React state with "dark" on both server and client
+  // first paint. The root <html> in `src/app/layout.tsx` also hardcodes the
+  // `dark` class to avoid a flash of unstyled content (FOUC). After mount the
+  // effect below reads localStorage and reconciles both the state and the DOM.
+  const [theme, setThemeState] = useState<Theme>("dark");
 
-    return window.localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
-  });
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+useEffect(() => {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const next: Theme = stored === "light" ? "light" : "dark";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount-time hydration
+    setThemeState(next);
+    applyTheme(next);
+  }, []);
 
   const value = useMemo(
     () => ({
