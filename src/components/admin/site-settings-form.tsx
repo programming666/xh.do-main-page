@@ -57,7 +57,7 @@ export function SiteSettingsForm({ initialData }: { initialData: SiteFormData })
       : "Manage site branding, logo, GitHub profile and homepage copy here. Background visuals, accent color and gradients are moved to background settings.";
   }, [locale]);
 
-  async function upload(kind: "backgrounds" | "logos", file?: File | null) {
+  async function upload(kind: "backgrounds" | "logos" | "og", file?: File | null) {
     if (!file) return null;
     const body = new FormData();
     body.append("kind", kind);
@@ -101,6 +101,13 @@ export function SiteSettingsForm({ initialData }: { initialData: SiteFormData })
             <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("ogImageUrlHint")}</span>
             <input className={fieldClassName} value={form.ogImageUrl} onChange={(e) => setForm({ ...form, ogImageUrl: e.target.value })} placeholder={t("ogImageUrlPlaceholder")} />
           </label>
+          <div className="space-y-1 md:col-span-2">
+            <FilePicker accept="image/*" onSelect={async (file) => {
+              const url = await upload("og", file);
+              if (url) setForm((prev) => ({ ...prev, ogImageUrl: url }));
+            }} />
+            <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("ogImageUrlUploadHint")}</span>
+          </div>
           <label className="block space-y-2 md:col-span-2">
             <span className="block text-sm font-medium text-foreground">{t("twitterHandle")}</span>
             <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("twitterHandleHint")}</span>

@@ -58,6 +58,16 @@ const KIND_RULES: Record<string, KindRule> = {
     ext: new Set([".png", ".jpg", ".jpeg", ".webp", ".avif"]),
     maxBytes: 8 * 1024 * 1024,
   },
+  og: {
+    mime: new Set([
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "image/avif",
+    ]),
+    ext: new Set([".png", ".jpg", ".jpeg", ".webp", ".avif"]),
+    maxBytes: 10 * 1024 * 1024,
+  },
 };
 
 /**
