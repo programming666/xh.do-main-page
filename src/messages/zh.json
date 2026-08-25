@@ -184,8 +184,11 @@
     "twitterTitlePlaceholder": "留空使用页面标题",
     "twitterDescription": "Twitter 描述",
     "twitterDescriptionPlaceholder": "留空使用页面描述",
-    "switchToLight": "切换到浅色主题",
-    "switchToDark": "切换到深色主题"
+    "themeToggleAria": "切换主题（浅色 / 深色 / 跟随系统）",
+    "themeMenuLabel": "选择主题",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeSystem": "跟随系统"
   },
   "noscript": {
     "title": "本站需要启用 JavaScript",

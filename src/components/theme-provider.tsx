@@ -2,59 +2,101 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-type Theme = "light" | "dark";
+export type ThemePreference = "light" | "dark" | "system";
+export type ResolvedTheme = "light" | "dark";
 
 type ThemeContextValue = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+  /** The user's stored preference — may be "system". */
+  theme: ThemePreference;
+  /** The effective theme ("system" resolved against the OS scheme). */
+  resolvedTheme: ResolvedTheme;
+  setTheme: (theme: ThemePreference) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "xhdo-theme";
+const SYSTEM_QUERY = "(prefers-color-scheme: dark)";
+
+function isStoredPreference(value: string | null): value is ThemePreference {
+  return value === "light" || value === "dark" || value === "system";
+}
+
+function resolvePreference(
+  preference: ThemePreference,
+  systemDark: boolean,
+): ResolvedTheme {
+  return preference === "system" ? (systemDark ? "dark" : "light") : preference;
+}
+
+function applyThemeClass(resolved: ResolvedTheme) {
+  document.documentElement.classList.toggle("dark", resolved === "dark");
+  // Matches the OS color scheme so form controls / scrollbars / favicon
+  // render with the right chrome in both modes.
+  document.documentElement.style.colorScheme = resolved;
+}
 
 /**
  * Toggle the `dark` class on <html>. We intentionally rely on plain class
- * toggling + CSS transitions instead of `document.startViewTransition`: the
- * View Transitions snapshot crossfades the entire viewport (including the
- * hero image) which made it impossible for `tech-background.tsx` to do its
- * own smarter layered crossfade. With this lightweight approach the CSS
- * variables in globals.css transition smoothly on their own.
+ * toggling + CSS transitions: the earlier View Transitions snapshot crossfaded
+ * the entire viewport (including the hero image) and made it impossible for
+ * `tech-background.tsx` to run its own layered crossfade. The CSS variables in
+ * globals.css transition smoothly on their own.
  */
-function applyTheme(theme: Theme) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
-}
-
 export function ThemeProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-// The initial render must match SSR exactly to avoid a React hydration
-  // mismatch, so we seed the React state with "dark" on both server and client
-  // first paint. The root <html> in `src/app/layout.tsx` also hardcodes the
-  // `dark` class to avoid a flash of unstyled content (FOUC). After mount the
-  // effect below reads localStorage and reconciles both the state and the DOM.
-  const [theme, setThemeState] = useState<Theme>("dark");
+  // The initial render must match SSR (html starts with class "dark"), and the
+  // pre-paint inline script in the root layout has already applied the correct
+  // class for the stored preference / OS scheme before this mounts — so we
+  // only state the resolved theme here after the mount effect reconciles.
+  const [theme, setThemeState] = useState<ThemePreference>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
 
-useEffect(() => {
+  // Mount once: pick up the stored preference and apply it. Defaults to
+  // "system" for first-time visitors so the site adapts to the OS scheme.
+  useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    const next: Theme = stored === "light" ? "light" : "dark";
+    const preference: ThemePreference = isStoredPreference(stored)
+      ? stored
+      : "system";
+    const systemDark = window.matchMedia(SYSTEM_QUERY).matches;
+    const resolved: ResolvedTheme = resolvePreference(preference, systemDark);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount-time hydration
-    setThemeState(next);
-    applyTheme(next);
+    setThemeState(preference);
+    setResolvedTheme(resolved);
+    applyThemeClass(resolved);
   }, []);
+
+  // While the preference is "system", follow OS scheme changes live.
+  useEffect(() => {
+    const mql = window.matchMedia(SYSTEM_QUERY);
+    const onChange = () => {
+      if (theme !== "system") return;
+      const resolved: ResolvedTheme = mql.matches ? "dark" : "light";
+      setResolvedTheme(resolved);
+      applyThemeClass(resolved);
+    };
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [theme]);
 
   const value = useMemo(
     () => ({
       theme,
-      setTheme(nextTheme: Theme) {
-        setThemeState(nextTheme);
-        applyTheme(nextTheme);
-        window.localStorage.setItem(STORAGE_KEY, nextTheme);
+      resolvedTheme,
+      setTheme(next: ThemePreference) {
+        setThemeState(next);
+        const systemDark = window.matchMedia(SYSTEM_QUERY).matches;
+        const resolved: ResolvedTheme = resolvePreference(next, systemDark);
+        setResolvedTheme(resolved);
+        applyThemeClass(resolved);
+        window.localStorage.setItem(STORAGE_KEY, next);
       },
     }),
-    [theme],
+    [theme, resolvedTheme],
   );
 
   return (

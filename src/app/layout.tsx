@@ -50,6 +50,20 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full dark`}
     >
+      <head>
+        {/*
+          Apply the correct theme class before first paint. SSR always renders
+          class="dark" (matching the provider's initial state), so without this
+          script a light-mode / light-OS visitor would see a dark flash until
+          hydration. Reads the stored preference and falls back to the OS
+          scheme (adaptive mode) when nothing is stored yet.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem("xhdo-theme");var dark=true;if(s==="light"){dark=false}else if(s==="dark"){dark=true}else{dark=window.matchMedia("(prefers-color-scheme: dark)").matches}var d=document.documentElement;d.classList.toggle("dark",dark);d.style.colorScheme=dark?"dark":"light"}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full bg-background text-foreground antialiased">
         {children}
       </body>

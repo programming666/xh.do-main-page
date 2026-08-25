@@ -112,7 +112,7 @@ export function TechBackground({
   gradientEnd,
   gradientAngle = 135,
 }: TechBackgroundProps) {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const [offset, setOffset] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -192,7 +192,7 @@ export function TechBackground({
     [overlayOpacity],
   );
 
-  const isLight = theme === "light";
+  const isLight = resolvedTheme === "light";
 
   return (
     <div className="absolute inset-0 overflow-hidden rounded-[2rem] border border-white/10">

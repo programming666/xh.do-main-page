@@ -184,8 +184,11 @@
     "twitterTitlePlaceholder": "Blank falls back to page title",
     "twitterDescription": "Twitter description",
     "twitterDescriptionPlaceholder": "Blank falls back to meta description",
-    "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
+    "themeToggleAria": "Change theme (light / dark / system)",
+    "themeMenuLabel": "Choose theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System"
   },
   "noscript": {
     "title": "JavaScript is required",
