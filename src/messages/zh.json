@@ -170,7 +170,7 @@
     "metaDescriptionHint": "搜索引擎摘要通常截断到 ~160 个字符。",
     "metaDescriptionPlaceholder": "一句话介绍这个站点，用于搜索引擎摘要…",
     "ogImageUrl": "Open Graph 预览图",
-    "ogImageUrlHint": "留空则使用默认渐变背景；填写图片 URL 或点击下方上传后，预览图会以该图为背景，叠加站点标题与简介（推荐 1200x630 或更宽的横图）。",
+    "ogImageUrlHint": "留空则使用默认渐变背景；填写图片 URL 或点击下方上传后，预览图会以该图为背景，叠加站点标题与简介（推荐 1200x630 或更宽的横图，支持 PNG/JPG）。",
     "ogImageUrlUploadHint": "上传的图片会作为自动生成预览图的背景（自动加深，标题文字叠加在上方）。也可直接在上方输入外部图片 URL。",
     "ogImageUrlPlaceholder": "/uploads/og/cover.jpg 或 https://cdn.xh.do/og.jpg",
     "twitterHandle": "Twitter 账号",

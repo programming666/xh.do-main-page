@@ -59,13 +59,10 @@ const KIND_RULES: Record<string, KindRule> = {
     maxBytes: 8 * 1024 * 1024,
   },
   og: {
-    mime: new Set([
-      "image/png",
-      "image/jpeg",
-      "image/webp",
-      "image/avif",
-    ]),
-    ext: new Set([".png", ".jpg", ".jpeg", ".webp", ".avif"]),
+    // Satori (next/og) can only decode PNG/JPEG — webp/avif render as
+    // "Unsupported image type" and break the og/twitter card generators.
+    mime: new Set(["image/png", "image/jpeg"]),
+    ext: new Set([".png", ".jpg", ".jpeg"]),
     maxBytes: 10 * 1024 * 1024,
   },
 };
