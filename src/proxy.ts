@@ -121,6 +121,6 @@ export const config = {
   matcher: [
     "/",
     "/(zh|en)/:path*",
-    "/((?!api|_next|icon|apple-icon|opengraph-image|twitter-image|manifest\.json|sitemap\.xml|robots\.txt|favicon\.ico).*)",
+    "/((?!api|_next|icon|apple-icon|opengraph-image|twitter-image|manifest\\.webmanifest|manifest\\.json|sitemap\\.xml|robots\\.txt|favicon\\.ico).*)",
   ],
 };
