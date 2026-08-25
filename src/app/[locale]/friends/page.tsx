@@ -20,7 +20,7 @@ export default async function FriendsPage({
         <div className="glass-panel rounded-[2rem] px-6 py-10 sm:px-10 sm:py-12">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-cyan-400">xh.do</p>
+              <p className="text-xs uppercase tracking-[0.28em] text-accent">xh.do</p>
               <h1 className="mt-3 text-3xl font-semibold">{t("friendLinks")}</h1>
             </div>
             <NextLink

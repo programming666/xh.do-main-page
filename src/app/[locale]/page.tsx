@@ -113,10 +113,10 @@ export default async function LocaleHomePage({
         <section id="projects" className="space-y-6">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-cyan-400">{t("featured")}</p>
+              <p className="text-xs uppercase tracking-[0.28em] text-accent">{t("featured")}</p>
               <h2 className="mt-3 flex items-baseline gap-3 text-3xl font-semibold">
                 <span>{t("projects")}</span>
-                <span className="text-2xl font-medium text-cyan-300/90">({projects.length})</span>
+                <span className="text-2xl font-medium text-accent/90">({projects.length})</span>
               </h2>
             </div>
           </div>

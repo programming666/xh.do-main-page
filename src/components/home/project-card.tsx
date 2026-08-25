@@ -80,7 +80,7 @@ export function ProjectCard({
           <p className="mt-2 text-sm text-[color:var(--muted)]">{summary}</p>
         </div>
         <p className="text-sm leading-7 text-[color:var(--muted)]">{description}</p>
-        <div className="text-xs uppercase tracking-[0.2em] text-cyan-400/90">{techStack}</div>
+        <div className="text-xs uppercase tracking-[0.2em] text-accent">{techStack}</div>
         <div className="flex flex-wrap gap-3">
           {demoUrl ? (
             <a className="rounded-full border border-cyan-300/20 px-4 py-2 text-sm transition-colors duration-200 ease-out hover:bg-cyan-300/10" href={demoUrl} target="_blank" rel="noreferrer">

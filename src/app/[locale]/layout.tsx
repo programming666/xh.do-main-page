@@ -113,6 +113,15 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
+      {/*
+        LCP fix: the hero is a CSS background-image set inside a client
+        component, so it's not in the initial HTML and is only discovered
+        after hydration — starving LCP. Hoisted into <head> by Next.js, this
+        preload lets the browser fetch the hero image immediately.
+      */}
+      {site.heroMediaUrl ? (
+        <link rel="preload" as="image" href={site.heroMediaUrl} fetchPriority="high" />
+      ) : null}
       <ThemeProvider>
         <noscript>
           <div className="px-4 pb-4 pt-24 sm:px-6 lg:px-10">
@@ -130,7 +139,7 @@ export default async function LocaleLayout({
           </div>
         </noscript>
         <div className="min-h-screen">
-          <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-4 py-4 sm:px-6 lg:px-10">
+          <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-4 py-4 sm:px-6 lg:px-10">
             <div className="pointer-events-auto flex items-center gap-3">
               <TopNavLink
                 locale={locale}
@@ -141,7 +150,7 @@ export default async function LocaleLayout({
               <LocaleSwitcher />
               <ThemeToggle />
             </div>
-          </div>
+          </header>
           {children}
         </div>
       </ThemeProvider>
