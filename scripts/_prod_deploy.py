@@ -25,16 +25,33 @@ ECOSYSTEM_B64 = base64.b64encode(ECOSYSTEM_CONFIG.encode("utf-8")).decode("ascii
 
 DEPLOY_STEPS = [
     {
-        "label": "write ecosystem.config.cjs",
+        "label": "git pull on prod",
+        "cmd": "su - xhdo -c \"cd /opt/xhdo/app && git pull 2>&1 | tail -8 && echo --- && git log --oneline -3\"",
+    },
+    {
+        "label": "npm install",
+        "cmd": "su - xhdo -c \"cd /opt/xhdo/app && npm install --legacy-peer-deps 2>&1 | tail -8\"",
+        "timeout": 240,
+    },
+    {
+        "label": "prisma migrate deploy",
+        "cmd": "su - xhdo -c \"cd /opt/xhdo/app && npx prisma migrate deploy 2>&1 | tail -10\"",
+    },
+    {
+        "label": "npm run build",
+        "cmd": "su - xhdo -c \"cd /opt/xhdo/app && npm run build 2>&1 | tail -20\"",
+        "timeout": 240,
+    },
+    {
+        "label": "ensure ecosystem.config.cjs",
         "cmd": (
             f"echo '{ECOSYSTEM_B64}' | base64 -d > /opt/xhdo/app/ecosystem.config.cjs "
-            f"&& chown xhdo:xhdo /opt/xhdo/app/ecosystem.config.cjs "
-            f"&& cat /opt/xhdo/app/ecosystem.config.cjs"
+            f"&& chown xhdo:xhdo /opt/xhdo/app/ecosystem.config.cjs"
         ),
     },
     {
-        "label": "pm2 start",
-        "cmd": "su - xhdo -c \"cd /opt/xhdo/app && pm2 start ecosystem.config.cjs 2>&1 | tail -12\"",
+        "label": "pm2 restart",
+        "cmd": "su - xhdo -c \"cd /opt/xhdo/app && pm2 restart ecosystem.config.cjs 2>&1 | tail -10\"",
     },
     {
         "label": "wait + local check",
@@ -45,40 +62,24 @@ DEPLOY_STEPS = [
         "cmd": "for u in / /zh /en /zh/friends /zh/admin/login /zh/admin/dashboard /icon /apple-icon /opengraph-image /twitter-image /sitemap.xml /robots.txt /manifest.webmanifest; do code=$(curl -s -o /dev/null -w \"%{http_code}\" -L --max-time 10 \"https://xh.do$u\"); echo \"$code $u\"; done",
     },
     {
-        "label": "api",
-        "cmd": "curl -s -o /dev/null -w \"public/home: %{http_code}\\n\" https://xh.do/api/public/home",
+        "label": "og image under /zh",
+        "cmd": "curl -sI -L --max-time 10 https://xh.do/zh/opengraph-image | grep -iE 'HTTP|content-type|content-length' | head -4",
     },
     {
-        "label": "og meta /zh",
-        "cmd": "curl -s https://xh.do/zh | grep -oE '<(title|meta name=\"description\"|meta property=\"og:[a-z]+\"|meta name=\"twitter:[a-z]+\")[^>]*>' | head -20",
+        "label": "twitter image under /zh",
+        "cmd": "curl -sI -L --max-time 10 https://xh.do/zh/twitter-image | grep -iE 'HTTP|content-type|content-length' | head -4",
     },
     {
-        "label": "og meta /en",
-        "cmd": "curl -s https://xh.do/en | grep -oE '<(title|meta name=\"description\"|meta property=\"og:[a-z]+\"|meta name=\"twitter:[a-z]+\")[^>]*>' | head -20",
+        "label": "apple-icon direct",
+        "cmd": "curl -sI -L --max-time 10 https://xh.do/apple-icon | grep -iE 'HTTP|content-type' | head -4",
     },
     {
-        "label": "html lang",
-        "cmd": "for u in /zh /en; do echo -n \"$u html lang: \"; curl -s https://xh.do$u | grep -oE '<html[^>]*>' | head -1; done",
+        "label": "manifest.webmanifest direct",
+        "cmd": "curl -sI -L --max-time 10 https://xh.do/manifest.webmanifest | grep -iE 'HTTP|content-type' | head -4",
     },
     {
-        "label": "og image content-type",
-        "cmd": "curl -sI https://xh.do/opengraph-image | grep -iE 'content-type|http' | head -5",
-    },
-    {
-        "label": "twitter image content-type",
-        "cmd": "curl -sI https://xh.do/twitter-image | grep -iE 'content-type|http' | head -5",
-    },
-    {
-        "label": "sitemap content",
-        "cmd": "curl -s https://xh.do/sitemap.xml | head -20",
-    },
-    {
-        "label": "manifest content",
+        "label": "manifest body",
         "cmd": "curl -s https://xh.do/manifest.webmanifest | head -20",
-    },
-    {
-        "label": "CSP header",
-        "cmd": "curl -sI https://xh.do/zh | grep -iE 'content-security-policy' | head -5",
     },
 ]
 
@@ -94,7 +95,6 @@ def main() -> int:
     env["SSH_PORT"] = os.environ.get("SSH_PORT", "22")
     env["SSH_USER"] = os.environ.get("SSH_USER", "root")
     env["PYTHONIOENCODING"] = "utf-8"
-
     out_path = tempfile.mktemp(prefix="deploy_", suffix=".json")
     err_path = tempfile.mktemp(prefix="deploy_", suffix=".err")
     proc = subprocess.run(
