@@ -140,7 +140,7 @@ export default async function TwitterImage({
 
   return new ImageResponse(
     bgUrl ? (
-      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div style={{ position: "relative", display: "flex", width: "100%", height: "100%" }}>
         <img
           src={bgUrl}
           alt=""
@@ -169,6 +169,7 @@ export default async function TwitterImage({
       <div
         style={{
           position: "relative",
+          display: "flex",
           width: "100%",
           height: "100%",
           background: DEFAULT_BACKDROP,
