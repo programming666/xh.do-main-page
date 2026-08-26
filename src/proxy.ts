@@ -40,17 +40,34 @@ function stripUpstreamPort(response: Response, request: NextRequest): Response {
     return response;
   }
 
-  // Trust the forwarded headers from the proxy if they're present, otherwise
-  // fall back to the Host header.
-  const forwardedHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
-  const expectedHost = forwardedHost.split(":")[0]?.toLowerCase();
+  // Distinguish "proxied" (Cloudflare Tunnel / nginx) from "direct" access.
+  // Next.js always injects x-forwarded-host (== host when there's no proxy), so
+  // we use x-forwarded-proto === "https" as the reliable proxied signal: a real
+  // proxy (Cloudflare) marks the upstream as https; a direct http hit leaves it.
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  // Cloudflare marks the upstream as https and adds a cf-ray header. Direct
+  // origin hits (http) have neither. Being a bit lenient here only risks
+  // keeping a port we might otherwise strip, and never the reverse.
+  const proxied = forwardedProto === "https" || request.headers.get("cf-ray") !== null;
+
+  let expectedHost: string;
+  if (proxied) {
+    // Proxied: use the public hostname the client requested (via x-forwarded-host).
+    expectedHost = (request.headers.get("x-forwarded-host") ?? "").split(":")[0]?.toLowerCase() ?? "";
+  } else {
+    // Direct access: use the Host header the client actually sent, keeping the port.
+    expectedHost = request.headers.get("host") ?? "";
+  }
+  expectedHost = expectedHost.toLowerCase();
   if (!expectedHost) return response;
 
   // Don't rewrite redirects that intentionally point somewhere else.
-  if (target.hostname.toLowerCase() !== expectedHost) return response;
+  // For direct access we also require the port to match so we don't rewrite an
+  // unrelated IP:port redirect.
+  if (target.hostname.toLowerCase() !== expectedHost.replace(/:\d+$/, "")) return response;
 
   // Don't rewrite for local dev.
-  if (expectedHost === "localhost" || expectedHost === "127.0.0.1") return response;
+  if (expectedHost.startsWith("localhost") || expectedHost.startsWith("127.0.0.1")) return response;
 
   let mutated = false;
 
@@ -58,19 +75,33 @@ function stripUpstreamPort(response: Response, request: NextRequest): Response {
   // sets x-forwarded-proto). The default URL constructor will preserve
   // whatever scheme was in the Location, which next-intl inherits from the
   // *internal* http request.
-  const forwardedProto = request.headers.get("x-forwarded-proto");
+  // forwardedProto was already read above; reuse it here.
   if (forwardedProto === "https" && target.protocol === "http:") {
     target.protocol = "https:";
     mutated = true;
   }
-
-  // Drop the leaked internal port. URL.toString() also normalizes 80/443 away
-  // automatically, so this catches both `:3000` and any explicit default-port
-  // value the proxy might have injected.
-  if (target.port !== "") {
-    target.port = "";
-    mutated = true;
+  // Port handling differs by access mode.
+  if (proxied) {
+    // The client only ever sees the public hostname without a port, so drop any
+    // leaked internal port (e.g. `:3000`) that might have leaked into Location.
+    if (target.port !== "") {
+      target.port = "";
+      mutated = true;
+    }
+  } else {
+    // Direct access over a non-default port (e.g. `192.229.85.182:3000`): next-intl
+    // produces a Location with NO port, so re-attach the port the client used.
+    // Otherwise the browser falls back to 80/443 (and HSTS may push it to https).
+    const requestedPort = request.headers.get("host")?.match(/:\d+$/)?.[0]?.slice(1);
+    if (requestedPort && requestedPort !== "80" && requestedPort !== "443") {
+      target.port = requestedPort;
+      mutated = true;
+    }
   }
+  // Also normalize http(s) port removal: 80/443 omitted from toString() automatically.
+
+  // (Port handling for proxied vs direct access lives in the block above, so the
+  // original unconditional "drop any port" logic is no longer needed here.)
 
   if (mutated) {
     response.headers.set("location", target.toString());
