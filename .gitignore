@@ -22,7 +22,16 @@
 
 # misc
 .DS_Store
+# TLS certificates & private keys (NEVER commit)
 *.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+/cdn-certs/
 
 # debug
 npm-debug.log*
