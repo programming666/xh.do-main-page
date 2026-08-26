@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { ProjectCard } from "@/components/home/project-card";
 import { TechBackground } from "@/components/home/tech-background";
@@ -24,12 +24,21 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
+// ISR: regenerate the static HTML at most every 60s so the homepage stays
+// cacheable at the CDN (fixes the 3.4s cold TTFB / 6.8s mobile LCP) while
+// still picking up content changes within a minute.
+export const revalidate = 60;
+
 export default async function LocaleHomePage({
   params,
 }: {
   params: Promise<{ locale: AppLocale }>;
 }) {
   const { locale } = await params;
+  // Cache the locale so next-intl's getTranslations below resolves it without
+  // reading the x-next-intl-locale request header, letting this public page be
+  // statically rendered + ISR-cached at the CDN.
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "hero" });
   const { site, projects } = await getHomePageData(locale);
   const translation = site.translation;

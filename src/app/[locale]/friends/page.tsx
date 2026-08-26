@@ -1,9 +1,13 @@
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import NextLink from "next/link";
 
 import type { AppLocale } from "@/i18n/routing";
 import { getHomePageData } from "@/lib/site-data";
+
+// ISR: keep the friends page CDN-cacheable while still picking up link
+// changes within a minute.
+export const revalidate = 60;
 
 export default async function FriendsPage({
   params,
@@ -11,6 +15,9 @@ export default async function FriendsPage({
   params: Promise<{ locale: AppLocale }>;
 }) {
   const { locale } = await params;
+  // Cache the locale so getTranslations below resolves it without reading the
+  // x-next-intl-locale header, letting this public page be statically cached.
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "hero" });
   const { site, friendLinks } = await getHomePageData(locale);
 

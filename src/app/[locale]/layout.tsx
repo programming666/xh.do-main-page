@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -9,6 +11,18 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TopNavLink } from "@/components/top-nav-link";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { getSiteSettings } from "@/lib/site-data";
+
+import "../globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -104,6 +118,12 @@ export default async function LocaleLayout({
     notFound();
   }
 
+  // Populate next-intl's request-scoped locale cache so getMessages() /
+  // getTranslations() below resolve the locale without reading the
+  // x-next-intl-locale request header (which would force every route into
+  // dynamic rendering and kill ISR caching on the public pages).
+  setRequestLocale(locale);
+
   const [messages, site, t, tNoScript] = await Promise.all([
     getMessages(),
     getSiteSettings(locale as AppLocale),
@@ -112,48 +132,73 @@ export default async function LocaleLayout({
   ]);
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
-      {/*
-        LCP fix: the hero is a CSS background-image set inside a client
-        component, so it's not in the initial HTML and is only discovered
-        after hydration — starving LCP. Hoisted into <head> by Next.js, this
-        preload lets the browser fetch the hero image immediately.
-      */}
-      {site.heroMediaUrl ? (
-        <link rel="preload" as="image" href={site.heroMediaUrl} fetchPriority="high" />
-      ) : null}
-      <ThemeProvider>
-        <noscript>
-          <div className="px-4 pb-4 pt-24 sm:px-6 lg:px-10">
-            <div
-              role="alert"
-              className="rounded-2xl border border-amber-300/40 bg-amber-500/15 px-5 py-4 text-amber-50 shadow-lg backdrop-blur-sm"
-            >
-              <p className="text-sm font-semibold sm:text-base">
-                {tNoScript("title")}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-amber-100/85 sm:text-sm">
-                {tNoScript("description")}
-              </p>
+    <html
+      lang={locale}
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full dark`}
+    >
+      <head>
+        {/*
+          Apply the correct theme class before first paint. SSR always renders
+          class="dark" (matching the provider's initial state), so without this
+          script a light-mode / light-OS visitor would see a dark flash until
+          hydration. Reads the stored preference and falls back to the OS
+          scheme (adaptive mode) when nothing is stored yet.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem("xhdo-theme");var dark=true;if(s==="light"){dark=false}else if(s==="dark"){dark=true}else{dark=window.matchMedia("(prefers-color-scheme: dark)").matches}var d=document.documentElement;d.classList.toggle("dark",dark);d.style.colorScheme=dark?"dark":"light"}catch(e){}})();`,
+          }}
+        />
+        {/* This is supposed to be in the head. ES module boundary. */}
+        {site.heroMediaUrl ? (
+          <link rel="preload" as="image" href={site.heroMediaUrl} fetchPriority="high" />
+        ) : null}
+      </head>
+      <body className="min-h-full bg-background text-foreground antialiased">
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {/*
+            LCP fix: the hero is a CSS background-image set inside a client
+            component, so it's not in the initial HTML and is only discovered
+            after hydration — starving LCP. Hoisted into <head> by Next.js, this
+            preload lets the browser fetch the hero image immediately.
+          */}
+          <ThemeProvider>
+            <noscript>
+              <div className="px-4 pb-4 pt-24 sm:px-6 lg:px-10">
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-amber-300/40 bg-amber-500/15 px-5 py-4 text-amber-50 shadow-lg backdrop-blur-sm"
+                >
+                  <p className="text-sm font-semibold sm:text-base">
+                    {tNoScript("title")}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-amber-100/85 sm:text-sm">
+                    {tNoScript("description")}
+                  </p>
+                </div>
+              </div>
+            </noscript>
+            <div className="min-h-screen">
+              <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-4 py-4 sm:px-6 lg:px-10">
+                <div className="pointer-events-auto flex items-center gap-3">
+                  <TopNavLink
+                    locale={locale}
+                    friendsLabel={t("friendLinks")}
+                    backHomeLabel={t("backHome")}
+                    showFriendLinks={site.showFriendLinks}
+                  />
+                <Suspense fallback={null}>
+                  <LocaleSwitcher />
+                </Suspense>
+                  <ThemeToggle />
+                </div>
+              </header>
+              {children}
             </div>
-          </div>
-        </noscript>
-        <div className="min-h-screen">
-          <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-4 py-4 sm:px-6 lg:px-10">
-            <div className="pointer-events-auto flex items-center gap-3">
-              <TopNavLink
-                locale={locale}
-                friendsLabel={t("friendLinks")}
-                backHomeLabel={t("backHome")}
-                showFriendLinks={site.showFriendLinks}
-              />
-              <LocaleSwitcher />
-              <ThemeToggle />
-            </div>
-          </header>
-          {children}
-        </div>
-      </ThemeProvider>
-    </NextIntlClientProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
+      </body>
+    </html>
   );
 }
