@@ -1,9 +1,10 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 
 import type { CSSProperties } from "react";
 
+
+import { resolveProgressivePair } from "@/lib/media-compacted";
 import { useTheme } from "@/components/theme-provider";
 
 type TechBackgroundProps = {
@@ -68,6 +69,71 @@ interface SlideStackProps {
   style: CSSProperties;
 }
 
+
+interface ProgressiveBackgroundProps {
+  url: string;
+  visible: boolean;
+  style: CSSProperties;
+  crossfadeMs?: number;
+}
+
+// Paints the compacted (low-byte) image immediately, then preloads the
+// full-resolution source in the background and swaps to it once the browser
+// has decoded it. The element is an absolutely-positioned inset-0 div that
+// already occupies its box, so changing backgroundImage never affects layout
+// → no CLS. The visible/opacity state drives the slide crossfade, and the
+// incoming style carries the scroll/parallax transform.
+function ProgressiveBackground({
+  url,
+  visible,
+  style,
+  crossfadeMs = 1400,
+}: ProgressiveBackgroundProps) {
+  const imageUrl = useProgressiveImage(url);
+  return (
+    <div
+      className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+      style={{
+        ...style,
+        backgroundImage: `url("${imageUrl.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`,
+        opacity: visible ? 1 : 0,
+        transition: `opacity ${crossfadeMs}ms ease`,
+      }}
+    />
+  );
+}
+
+// Track the progressive swap: start on the compacted twin, then advance to
+// the full-resolution source once it has been decoded by the browser. The
+// same element is reused (opacity stays as-is), so the swap is a pure
+// background-image change with zero layout impact.
+function useProgressiveImage(url: string): string {
+  const [src, setSrc] = useState(() => {
+    const { low } = resolveProgressivePair(url);
+    return low ?? url;
+  });
+
+  useEffect(() => {
+    const { low, high } = resolveProgressivePair(url);
+    if (!high || high === low) return;
+
+    let cancelled = false;
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      if (cancelled) return;
+      setSrc(high);
+    };
+    img.src = high;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  return src;
+}
+
 function SlideStack({ slides, activeIndex, active, style }: SlideStackProps) {
   const visibleIndex = slides.length ? activeIndex % slides.length : 0;
   return (
@@ -79,17 +145,11 @@ function SlideStack({ slides, activeIndex, active, style }: SlideStackProps) {
       }}
     >
       {slides.map((item, index) => (
-        <div
+        <ProgressiveBackground
           key={`${item}-${index}`}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-[1400ms]"
-          style={{
-            ...style,
-            // Quote and escape the URL so admin-controlled values (which
-            // already pass `safeMediaUrl` validation) cannot break out of
-            // the CSS `url(...)` token, even if a value contains `"` or `\`.
-            backgroundImage: `url("${item.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`,
-            opacity: index === visibleIndex ? 1 : 0,
-          }}
+          url={item}
+          visible={index === visibleIndex}
+          style={style}
         />
       ))}
     </div>
