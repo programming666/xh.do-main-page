@@ -196,21 +196,30 @@ export async function getProjects(locale: AppLocale) {
 
 export async function getFriendLinks() {
   return prisma.socialLink.findMany({
-    where: { isPublished: true },
+    where: { isPublished: true, category: "friend" },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+  });
+}
+
+export async function getContactLinks() {
+  return prisma.socialLink.findMany({
+    where: { isPublished: true, category: "contact" },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
 }
 
 export async function getHomePageData(locale: AppLocale) {
-  const [site, projects, friendLinks] = await Promise.all([
+  const [site, projects, friendLinks, contactLinks] = await Promise.all([
     getSiteSettings(locale),
     getProjects(locale),
     getFriendLinks(),
+    getContactLinks(),
   ]);
 
   return {
     site,
     projects,
     friendLinks,
+    contactLinks,
   };
 }

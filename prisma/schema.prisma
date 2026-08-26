@@ -188,6 +188,9 @@ model ProjectTranslation {
 model SocialLink {
   id          String   @id @default(cuid())
   platform    String
+  // "friend" (友链, shown on /friends) or "contact" (联系方式, shown on the
+  // homepage about card). One table serves both without duplicating infra.
+  category    String   @default("friend")
   label       String
   url         String
   imageUrl    String?

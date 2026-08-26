@@ -9,6 +9,7 @@ import { FilePicker } from "@/components/admin/file-picker";
 type FriendLink = {
   id?: string;
   platform: string;
+  category?: string;
   label: string;
   url: string;
   imageUrl?: string | null;
@@ -18,6 +19,7 @@ type FriendLink = {
 
 const emptyLink: FriendLink = {
   platform: "friend",
+  category: "friend",
   label: "",
   url: "",
   imageUrl: "",
@@ -30,10 +32,20 @@ const fieldClassName =
 
 export function FriendLinksManager({ initialLinks }: { initialLinks: FriendLink[] }) {
   const t = useTranslations("admin");
+  const [category, setCategory] = useState<"friend" | "contact">("friend");
   const [links, setLinks] = useState(initialLinks);
-  const [editing, setEditing] = useState<FriendLink>(emptyLink);
+  const [editing, setEditing] = useState<FriendLink>({ ...emptyLink, category });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const visibleLinks = links.filter((link) => (link.category ?? "friend") === category);
+
+  function switchCategory(next: "friend" | "contact") {
+    setCategory(next);
+    setEditing({ ...emptyLink, category: next });
+    setMessage(null);
+    setError(null);
+  }
 
   async function refresh() {
     const response = await fetch("/api/admin/social", { cache: "no-store" });
@@ -55,9 +67,15 @@ export function FriendLinksManager({ initialLinks }: { initialLinks: FriendLink[
   return (
     <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
       <section className="glass-panel rounded-[1.75rem] p-6">
-        <h2 className="text-xl font-semibold">{t("friendLinks")}</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold">{t(category === "friend" ? "friendLinks" : "contactLinks")}</h2>
+          <div className="flex gap-1 rounded-full border border-white/10 p-1">
+            <button type="button" className={`rounded-full px-4 py-1.5 text-sm transition-colors ${category === "friend" ? "bg-cyan-400 text-slate-950" : "text-[color:var(--muted)] hover:bg-white/5"}`} onClick={() => switchCategory("friend")}>{t("friendLinks")}</button>
+            <button type="button" className={`rounded-full px-4 py-1.5 text-sm transition-colors ${category === "contact" ? "bg-cyan-400 text-slate-950" : "text-[color:var(--muted)] hover:bg-white/5"}`} onClick={() => switchCategory("contact")}>{t("contactLinks")}</button>
+          </div>
+        </div>
         <div className="mt-4 space-y-3">
-          {links.map((link) => (
+          {visibleLinks.map((link) => (
             <div key={link.id ?? link.url} className="rounded-2xl border border-white/10 bg-black/10 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -98,6 +116,11 @@ export function FriendLinksManager({ initialLinks }: { initialLinks: FriendLink[
               </div>
             </div>
           ))}
+          {visibleLinks.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-[color:var(--muted)]">
+              {category === "contact" ? t("emptyContactLinks") : t("emptyFriendLinks")}
+            </div>
+          ) : null}
         </div>
       </section>
       <form
@@ -119,14 +142,14 @@ export function FriendLinksManager({ initialLinks }: { initialLinks: FriendLink[
             return;
           }
           setMessage(t("friendLinkSaved"));
-          setEditing(emptyLink);
+          setEditing({ ...emptyLink, category });
           await refresh();
         }}
       >
-        <h2 className="text-xl font-semibold">{t("friendLinksEditor")}</h2>
-        <input className={fieldClassName} placeholder={t("friendLinkName")} value={editing.label} onChange={(e) => setEditing({ ...editing, label: e.target.value })} />
+        <h2 className="text-xl font-semibold">{t(category === "friend" ? "friendLinksEditor" : "contactLinksEditor")}</h2>
+        <input className={fieldClassName} placeholder={category === "friend" ? t("friendLinkName") : t("contactLinkName")} value={editing.label} onChange={(e) => setEditing({ ...editing, label: e.target.value })} />
         <input className={fieldClassName} placeholder={t("friendLinkUrl")} value={editing.url} onChange={(e) => setEditing({ ...editing, url: e.target.value })} />
-        <input className={fieldClassName} placeholder={t("friendLinkImageUrl")} value={editing.imageUrl ?? ""} onChange={(e) => setEditing({ ...editing, imageUrl: e.target.value })} />
+        <input className={fieldClassName} placeholder={category === "friend" ? t("friendLinkImageUrl") : t("contactLinkImageUrl")} value={editing.imageUrl ?? ""} onChange={(e) => setEditing({ ...editing, imageUrl: e.target.value })} />
         <FilePicker accept="image/*" onSelect={async (file) => {
           const url = await upload(file);
           if (url) {

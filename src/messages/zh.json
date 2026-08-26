@@ -188,7 +188,12 @@
     "themeMenuLabel": "选择主题",
     "themeLight": "浅色",
     "themeDark": "深色",
-    "themeSystem": "跟随系统"
+    "themeSystem": "跟随系统",
+    "contactLinks": "联系方式",
+    "contactLinksEditor": "添加 / 编辑联系方式",
+    "contactLinkName": "链接名称",
+    "contactLinkImageUrl": "图标图片 URL",
+    "emptyContactLinks": "还没有联系方式，从右侧添加"
   },
   "noscript": {
     "title": "本站需要启用 JavaScript",

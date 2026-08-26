@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { ContactLinks } from "@/components/home/contact-links";
 import { ProjectCard } from "@/components/home/project-card";
 import { TechBackground } from "@/components/home/tech-background";
 import { Link } from "@/i18n/navigation";
@@ -49,7 +50,7 @@ export default async function LocaleHomePage({
   // statically rendered + ISR-cached at the CDN.
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "hero" });
-  const { site, projects } = await getHomePageData(locale);
+  const { site, projects, contactLinks } = await getHomePageData(locale);
   const translation = site.translation;
   const showSecondaryCta =
     Boolean(translation.secondaryLabel && translation.secondaryHref) &&
@@ -113,7 +114,9 @@ export default async function LocaleHomePage({
             <div id="about" className="space-y-4 rounded-[1.75rem] border border-white/10 bg-slate-950/35 p-6 text-sm text-slate-200/82 backdrop-blur-sm">
               <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">{translation.aboutTitle}</p>
               <p className="leading-7">{translation.aboutBody}</p>
-              {site.githubUrl ? (
+              {contactLinks.length ? (
+                <ContactLinks links={contactLinks} />
+              ) : site.githubUrl ? (
                 <a
                   href={site.githubUrl}
                   target="_blank"

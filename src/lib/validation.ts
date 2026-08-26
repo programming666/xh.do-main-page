@@ -229,6 +229,8 @@ export const projectSchema = z.object({
  */
 export const socialLinkSchema = z.object({
   platform: z.preprocess(normalizeString, z.string().min(1)).default("friend"),
+  // "friend" (友链, /friends page) or "contact" (联系方式, homepage about card).
+  category: z.enum(["friend", "contact"]).default("friend"),
   label: z.preprocess(normalizeString, z.string().min(1)),
   url: safeHrefRequired,
   imageUrl: safeMediaOptional,
