@@ -1,10 +1,11 @@
 import Image from "next/image";
+import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import NextLink from "next/link";
 
-import type { AppLocale } from "@/i18n/routing";
+import { routing, type AppLocale } from "@/i18n/routing";
 import { getHomePageData } from "@/lib/site-data";
-
 // ISR: keep the friends page CDN-cacheable while still picking up link
 // changes within a minute.
 export const revalidate = 60;
@@ -15,6 +16,11 @@ export default async function FriendsPage({
   params: Promise<{ locale: AppLocale }>;
 }) {
   const { locale } = await params;
+  // Guard invalid locales (e.g. /xxx routing into [locale]) before reading
+  // site.translation below, which would otherwise crash on undefined.
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
   // Cache the locale so getTranslations below resolves it without reading the
   // x-next-intl-locale header, letting this public page be statically cached.
   setRequestLocale(locale);

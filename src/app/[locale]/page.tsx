@@ -1,10 +1,12 @@
 import Image from "next/image";
+import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { ProjectCard } from "@/components/home/project-card";
 import { TechBackground } from "@/components/home/tech-background";
 import { Link } from "@/i18n/navigation";
-import type { AppLocale } from "@/i18n/routing";
+import { routing, type AppLocale } from "@/i18n/routing";
 import { getHomePageData } from "@/lib/site-data";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -35,6 +37,13 @@ export default async function LocaleHomePage({
   params: Promise<{ locale: AppLocale }>;
 }) {
   const { locale } = await params;
+  // Guard: /xxx-style single-segment paths route into the [locale] segment
+  // with an invalid locale. Reading site.translation below would crash on an
+  // undefined translation, so reject unknown locales up front (404). The
+  // layout also guards, but the page body renders in parallel during streaming.
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
   // Cache the locale so next-intl's getTranslations below resolves it without
   // reading the x-next-intl-locale request header, letting this public page be
   // statically rendered + ISR-cached at the CDN.
