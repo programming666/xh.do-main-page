@@ -56,16 +56,29 @@ html {
    properties for the same duration so light/dark switching reads as a
    single coordinated animation rather than a piecemeal flicker. The hero
    image / overlay handles its own crossfade in tech-background.tsx. */
-*,
-*::before,
-*::after {
-  transition:
-    background-color 600ms ease,
-    color 600ms ease,
-    border-color 600ms ease,
-    fill 600ms ease,
-    stroke 600ms ease,
-    box-shadow 600ms ease;
+@layer base {
+  /*
+   * Global theme-transition: every element interpolates color-related
+   * properties so light/dark switching reads as a single coordinated
+   * animation rather than a piecemeal flicker. The hero image / overlay
+   * handles its own crossfade in tech-background.tsx.
+   *
+   * This MUST live in @layer base (not unlayered) so that Tailwind utility
+   * transitions (transition-*, duration-*, ease-* in @layer utilities) can
+   * override it — otherwise elements like project cards get locked to the
+   * 600ms color list and their transform/shadow hovers snap harshly.
+   */
+  *,
+  *::before,
+  *::after {
+    transition:
+      background-color 600ms ease,
+      color 600ms ease,
+      border-color 600ms ease,
+      fill 600ms ease,
+      stroke 600ms ease,
+      box-shadow 600ms ease;
+  }
 }
 
 body {

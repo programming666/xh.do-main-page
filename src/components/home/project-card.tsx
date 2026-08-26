@@ -23,10 +23,11 @@ export function ProjectCard({
     <article
       className="
         glass-panel group overflow-hidden rounded-3xl
-        transition-[transform,box-shadow,border-color] duration-[2000ms]
-        ease-linear will-change-transform
-        hover:-translate-y-1 hover:border-cyan-300/30
-        hover:shadow-[0_30px_80px_rgba(15,23,42,0.28)]
+          transition-[transform,box-shadow,border-color] duration-200
+          ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform
+          hover:-translate-y-1 hover:border-cyan-300/30
+          hover:shadow-[0_30px_80px_rgba(15,23,42,0.28)]
+
       "
     >
       <div className="relative aspect-[16/10] overflow-hidden border-b border-white/10 bg-slate-950/55">
@@ -45,7 +46,7 @@ export function ProjectCard({
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="
                 object-cover scale-110 blur-2xl opacity-50
-                transition-opacity duration-[2000ms]
+                transition-opacity duration-200
                 ease-[cubic-bezier(0.22,1,0.36,1)]
                 group-hover:opacity-70
               "
@@ -57,7 +58,7 @@ export function ProjectCard({
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="
                 object-contain
-                transition-[transform,filter] duration-[2000ms]
+                transition-[transform,filter] duration-200
                 ease-[cubic-bezier(0.22,1,0.36,1)]
                 group-hover:scale-[1.03] group-hover:brightness-110
               "

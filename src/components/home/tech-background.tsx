@@ -89,40 +89,66 @@ function ProgressiveBackground({
   style,
   crossfadeMs = 1400,
 }: ProgressiveBackgroundProps) {
-  const imageUrl = useProgressiveImage(url);
+  const { low, high, highReady } = useProgressiveImage(url);
+  const escapeUrl = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   return (
     <div
-      className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+      className="absolute inset-0"
       style={{
-        ...style,
-        backgroundImage: `url("${imageUrl.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`,
         opacity: visible ? 1 : 0,
-        transition: `opacity ${crossfadeMs}ms ease`,
+        transition: `opacity ${crossfadeMs}ms cubic-bezier(0.4, 0, 0.2, 1)`,
       }}
-    />
+    >
+      {/* Compacted / low-byte image paints immediately, then the full source
+          fades in over it once the browser has decoded it (no CLS — both layers
+          are absolutely inset-0 so the swap never affects layout). */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ ...style, backgroundImage: `url("${escapeUrl(low)}")` }}
+      />
+      {high !== low && (
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            ...style,
+            backgroundImage: `url("${escapeUrl(high)}")`,
+            opacity: highReady ? 1 : 0,
+            transition: `opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)`,
+          }}
+        />
+      )}
+    </div>
   );
 }
 
 // Track the progressive swap: start on the compacted twin, then advance to
 // the full-resolution source once it has been decoded by the browser. The
-// same element is reused (opacity stays as-is), so the swap is a pure
-// background-image change with zero layout impact.
-function useProgressiveImage(url: string): string {
-  const [src, setSrc] = useState(() => {
-    const { low } = resolveProgressivePair(url);
-    return low ?? url;
+// element is reused, so the swap is a pure opacity release with zero CLS.
+function useProgressiveImage(url: string): {
+  low: string;
+  high: string;
+  highReady: boolean;
+} {
+  const [state, setState] = useState(() => {
+    const { low, high } = resolveProgressivePair(url);
+    const lowUrl = low ?? url;
+    return { low: lowUrl, high: high ?? lowUrl, highReady: false };
   });
 
   useEffect(() => {
     const { low, high } = resolveProgressivePair(url);
-    if (!high || high === low) return;
+    const lowUrl = low ?? url;
+    const highUrl = high ?? lowUrl;
+    if (!high || high === low) {
+      return;
+    }
 
     let cancelled = false;
     const img = new Image();
     img.decoding = "async";
     img.onload = () => {
       if (cancelled) return;
-      setSrc(high);
+      setState({ low: lowUrl, high: highUrl, highReady: true });
     };
     img.src = high;
 
@@ -131,7 +157,7 @@ function useProgressiveImage(url: string): string {
     };
   }, [url]);
 
-  return src;
+  return state;
 }
 
 function SlideStack({ slides, activeIndex, active, style }: SlideStackProps) {
@@ -141,7 +167,7 @@ function SlideStack({ slides, activeIndex, active, style }: SlideStackProps) {
       className="absolute inset-0"
       style={{
         opacity: active ? 1 : 0,
-        transition: `opacity ${THEME_CROSSFADE_MS}ms ease`,
+        transition: `opacity ${THEME_CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
       }}
     >
       {slides.map((item, index) => (
@@ -304,7 +330,7 @@ export function TechBackground({
         style={{
           background: darkOverlayBackground,
           opacity: isLight ? 0 : 1,
-          transition: `opacity ${THEME_CROSSFADE_MS}ms ease`,
+          transition: `opacity ${THEME_CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
       />
       <div
@@ -312,7 +338,7 @@ export function TechBackground({
         style={{
           background: lightOverlayBackground,
           opacity: isLight ? 1 : 0,
-          transition: `opacity ${THEME_CROSSFADE_MS}ms ease`,
+          transition: `opacity ${THEME_CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
         }}
       />
 
