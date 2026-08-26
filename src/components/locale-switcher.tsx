@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 function buildLocalePath(pathname: string, nextLocale: "zh" | "en") {
   const segments = pathname.split("/").filter(Boolean);
@@ -20,8 +20,6 @@ export function LocaleSwitcher() {
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
-
   return (
     <div
       role="group"
@@ -39,7 +37,7 @@ export function LocaleSwitcher() {
             aria-label={active ? `${label}（${t("language")}）` : label}
             onClick={() => {
               const nextPath = buildLocalePath(pathname, item);
-              const query = searchParams.toString();
+              const query = window.location.search.replace(/^\?/, "");
               router.replace(query ? `${nextPath}?${query}` : nextPath);
             }}
             className={`rounded-full px-3 py-1.5 transition-all duration-200 ease-out ${

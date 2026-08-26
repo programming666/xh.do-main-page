@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
@@ -188,9 +187,7 @@ export default async function LocaleLayout({
                     backHomeLabel={t("backHome")}
                     showFriendLinks={site.showFriendLinks}
                   />
-                <Suspense fallback={null}>
                   <LocaleSwitcher />
-                </Suspense>
                   <ThemeToggle />
                 </div>
               </header>
