@@ -22,6 +22,9 @@ type TechBackgroundProps = {
   gradientStart?: string | null;
   gradientEnd?: string | null;
   gradientAngle?: number;
+  // CSS background-position controlling which part of a cover-cropped hero
+  // image is visible (e.g. "center", "left top", "right bottom").
+  backgroundPosition?: string;
 };
 
 // Cross-fade duration when the user toggles light/dark. Slow enough to feel
@@ -159,6 +162,7 @@ export function TechBackground({
   gradientStart,
   gradientEnd,
   gradientAngle = 135,
+  backgroundPosition = "center",
 }: TechBackgroundProps) {
   const { resolvedTheme } = useTheme();
   const [offset, setOffset] = useState(0);
@@ -272,13 +276,13 @@ export function TechBackground({
               slides={darkStack}
               activeIndex={activeIndex}
               active={!isLight}
-              style={transformStyle}
+              style={{ ...transformStyle, backgroundPosition }}
             />
             <SlideStack
               slides={lightStack}
               activeIndex={activeIndex}
               active={isLight}
-              style={transformStyle}
+              style={{ ...transformStyle, backgroundPosition }}
             />
           </>
         )

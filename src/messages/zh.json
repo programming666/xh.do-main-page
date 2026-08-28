@@ -77,6 +77,8 @@
     "heroPosterUrl": "视频封面 URL，可选",
     "heroMediaUrlHint": "这里填写默认背景资源链接。图片模式下可作为首张图，视频模式下为视频地址。",
     "heroOverlayOpacity": "背景遮罩透明度",
+    "heroBackgroundPositionLabel": "背景裁切位置",
+    "heroBackgroundPositionHint": "背景图被裁切时显示哪一部分，点击九宫格选择。",
     "heroPosterUrlHint": "仅在背景为视频时使用。视频加载前会先显示这张封面图。",
     "heroInterval": "背景轮播间隔（毫秒）",
     "heroOverlayOpacityHint": "数值范围 0-90。值越大，背景越暗，前景文字越容易看清。",

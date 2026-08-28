@@ -68,6 +68,7 @@ export default async function LocaleHomePage({
             darkMediaItems={site.heroDarkItems}
             posterUrl={site.heroPosterUrl}
             effect={site.heroEffect as "none" | "scroll-pan" | "parallax"}
+            backgroundPosition={site.heroBackgroundPosition}
             overlayOpacity={site.heroOverlayOpacity}
             intervalMs={site.heroImageIntervalMs}
             accentColor={site.accentColor}

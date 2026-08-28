@@ -179,6 +179,19 @@ export const siteSettingsSchema = z.object({
   heroPosterUrl: safeMediaOptional,
   heroOverlayOpacity: z.coerce.number().min(0).max(90),
   heroEffect: z.enum(["none", "scroll-pan", "parallax"]),
+  heroBackgroundPosition: z
+    .enum([
+      "left top",
+      "center top",
+      "right top",
+      "left center",
+      "center",
+      "right center",
+      "left bottom",
+      "center bottom",
+      "right bottom",
+    ])
+    .default("center"),
   accentColor: cleanedColor,
   gradientEnabled: z.boolean().default(false),
   gradientStart: cleanedColor,

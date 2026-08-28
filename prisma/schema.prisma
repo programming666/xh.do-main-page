@@ -118,6 +118,7 @@ model SiteSettings {
   heroPosterUrl       String?
   heroOverlayOpacity  Int                       @default(55)
   heroEffect          String                    @default("scroll-pan")
+  heroBackgroundPosition String                  @default("center")
   accentColor         String                    @default("#4cc9ff")
   gradientEnabled     Boolean                   @default(false)
   gradientStart       String                    @default("#1297ff")

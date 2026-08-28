@@ -78,6 +78,8 @@
     "heroPosterUrl": "Video poster URL, optional",
     "heroPosterUrlHint": "Used only for video backgrounds. This image is shown before the video finishes loading.",
     "heroOverlayOpacity": "Overlay opacity",
+    "heroBackgroundPositionLabel": "Background crop position",
+    "heroBackgroundPositionHint": "Choose which part of the background shows when it is cropped. Click a cell in the 3×3 grid.",
     "heroOverlayOpacityHint": "Range 0-90. Higher values darken the background more so foreground text is easier to read.",
     "heroInterval": "Background interval (ms)",
     "heroIntervalHint": "Measured in milliseconds. 4500 means one slide every 4.5 seconds. 1000 ms = 1 second.",

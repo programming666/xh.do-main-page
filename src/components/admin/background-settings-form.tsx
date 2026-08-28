@@ -24,6 +24,7 @@ type BackgroundFormData = {
   heroPosterUrl: string;
   heroOverlayOpacity: number;
   heroEffect: "none" | "scroll-pan" | "parallax";
+  heroBackgroundPosition: string;
 };
 
 const fieldClassName =
@@ -52,6 +53,60 @@ function FieldGroup({
     </label>
   );
 }
+
+// 3×3 grid of CSS background-position values — the admin picks which part of
+// a cover-cropped hero image is visible. Each cell renders a tiny square dot
+// at the corresponding spot inside a preview box.
+const HERO_POSITIONS: string[][] = [
+  ["left top", "center top", "right top"],
+  ["left center", "center", "right center"],
+  ["left bottom", "center bottom", "right bottom"],
+];
+
+function PositionPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const t = useTranslations("admin");
+  return (
+    <div className="grid w-fit grid-cols-3 gap-1.5">
+      {HERO_POSITIONS.flatMap((row, rowIndex) =>
+        row.map((position) => {
+          const colIndex = HERO_POSITIONS[rowIndex].indexOf(position);
+          const isActive = value === position;
+          const dotPlacement = [
+            rowIndex === 0 ? "top-1" : rowIndex === 2 ? "bottom-1" : "top-1/2 -translate-y-1/2",
+            colIndex === 0 ? "left-1" : colIndex === 2 ? "right-1" : "left-1/2 -translate-x-1/2",
+          ].join(" ");
+          return (
+            <button
+              key={position}
+              type="button"
+              title={position}
+              aria-label={`${t("heroBackgroundPositionLabel")}: ${position}`}
+              onClick={() => onChange(position)}
+              className={`relative h-9 w-9 rounded-lg border transition-colors ${
+                isActive
+                  ? "border-cyan-400 bg-cyan-400/15"
+                  : "border-[color:var(--border)] bg-black/5 hover:border-cyan-300/50 dark:bg-white/5"
+              }`}
+            >
+              <span
+                className={`absolute h-1.5 w-1.5 rounded-full ${dotPlacement} ${
+                  isActive ? "bg-cyan-400" : "bg-slate-400/70"
+                }`}
+              />
+            </button>
+          );
+        }),
+      )}
+    </div>
+  );
+}
+
 
 export function BackgroundSettingsForm({ initialData }: { initialData: BackgroundFormData }) {
   const t = useTranslations("admin");
@@ -159,6 +214,12 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
           </FieldGroup>
           <FieldGroup label={t("heroOverlayOpacity")} hint={t("heroOverlayOpacityHint")}>
             <input className={fieldClassName} value={String(form.heroOverlayOpacity)} onChange={(e) => setForm({ ...form, heroOverlayOpacity: Number(e.target.value) || 55 })} placeholder="55" />
+          </FieldGroup>
+          <FieldGroup label={t("heroBackgroundPositionLabel")} hint={t("heroBackgroundPositionHint")}>
+            <PositionPicker
+              value={form.heroBackgroundPosition}
+              onChange={(position) => setForm({ ...form, heroBackgroundPosition: position })}
+            />
           </FieldGroup>
           <FieldGroup className="md:col-span-2" label={t("heroMediaUrl")} hint={t("heroMediaUrlHint")}>
             <input className={fieldClassName} value={form.heroMediaUrl} onChange={(e) => setForm({ ...form, heroMediaUrl: e.target.value })} placeholder="https://example.com/background.webp" />
