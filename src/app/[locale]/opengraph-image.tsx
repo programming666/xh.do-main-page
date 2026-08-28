@@ -11,6 +11,56 @@ export const contentType = "image/png";
 // Pull fresh settings whenever the layout appends `?v=<updatedAt>`.
 export const dynamic = "force-dynamic";
 
+// ---- OG image caching ----
+// Every share-crawler hit used to re-render Satori + re-fetch the background
+// image + re-run sharp (expensive). The rendered PNG bytes are cached in
+// memory keyed by `${locale}:${updatedAt}`: the layout appends `?v=updatedAt`
+// to the og:image URL, so the moment settings change the URL changes and a
+// fresh image is generated; unchanged URLs are served straight from cache.
+// The sharp PNG conversion of the background is cached per raw URL (CDN
+// assets are content-addressed & immutable, so the mapping never goes stale).
+const OG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const OG_MAX_ENTRIES = 60;
+const ogImageCache = new Map<
+  string,
+  { value: ArrayBuffer; expiresAt: number }
+>();
+const bgPngCache = new Map<
+  string,
+  { value: string; expiresAt: number }
+>();
+
+function cacheGet<T>(
+  map: Map<string, { value: T; expiresAt: number }>,
+  key: string,
+): T | null {
+  const entry = map.get(key);
+  if (entry && entry.expiresAt > Date.now()) return entry.value;
+  if (entry) map.delete(key);
+  return null;
+}
+
+function cacheSet<T>(
+  map: Map<string, { value: T; expiresAt: number }>,
+  key: string,
+  value: T,
+  ttlMs: number,
+) {
+  if (map.size >= OG_MAX_ENTRIES) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey) map.delete(oldestKey);
+  }
+  map.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
+
+const OG_RESPONSE_HEADERS = {
+  "Content-Type": contentType,
+  // Browser 1h, edge/CDN 1d, plus stale-while-revalidate so crawlers never
+  // wait on a cold generation.
+  "Cache-Control":
+    "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
+};
+
 const CARD_FONT = "system-ui, -apple-system, Segoe UI, sans-serif";
 // Default backdrop used when no custom `ogImageUrl` is configured.
 const DEFAULT_BACKDROP =
@@ -32,16 +82,22 @@ function toAbsoluteUrl(url: string | null | undefined) {
 async function resolveBgSrc(rawUrl: string | null | undefined) {
   if (!rawUrl) return null;
   if (rawUrl.startsWith("data:")) return rawUrl;
+  const cached = cacheGet(bgPngCache, rawUrl);
+  if (cached) return cached;
   // Satori's own image loader can only decode PNG/JPEG. Fetch the bytes here
   // and normalize through sharp: webp/avif are converted to PNG (data URI) so
   // any URL the admin configures still renders, and EXIF rotation is applied.
-  const res = await fetch(rawUrl, { cache: "no-store" });
+  // `force-cache` lets Next's fetch cache dedupe repeated fetches; CDN assets
+  // are immutable so this never goes stale.
+  const res = await fetch(rawUrl, { cache: "force-cache" });
   if (!res.ok) {
     throw new Error(`og background fetch failed: ${rawUrl} -> ${res.status}`);
   }
   const buf = Buffer.from(await res.arrayBuffer());
   const png = await sharp(buf).rotate().png().toBuffer();
-  return `data:image/png;base64,${png.toString("base64")}`;
+  const src = `data:image/png;base64,${png.toString("base64")}`;
+  cacheSet(bgPngCache, rawUrl, src, OG_CACHE_TTL_MS);
+  return src;
 }
 
 export default async function OpengraphImage({
@@ -57,6 +113,13 @@ export default async function OpengraphImage({
   }
   const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
   const site = await ensureSiteSettings();
+  // Cache key: updatedAt changes on every settings save, so an edited card
+  // regenerates once and is then served from memory + CDN until the next save.
+  const cacheKey = `${locale}:${site.updatedAt.getTime()}`;
+  const cached = cacheGet(ogImageCache, cacheKey);
+  if (cached) {
+    return new Response(cached, { headers: OG_RESPONSE_HEADERS });
+  }
   const translation =
     site.translations.find((item) => item.locale === locale) ??
     site.translations[0];
@@ -151,7 +214,7 @@ export default async function OpengraphImage({
     </div>
   );
 
-  return new ImageResponse(
+  const response = new ImageResponse(
     bgSrc ? (
       <div style={{ position: "relative", display: "flex", width: "100%", height: "100%" }}>
         <img
@@ -193,9 +256,13 @@ export default async function OpengraphImage({
     ),
     {
       ...size,
-      headers: {
-        "Cache-Control": "public, max-age=300, must-revalidate",
-      },
     },
   );
+
+  // Materialize the rendered PNG into a buffer so it can be cached and
+  // returned as a plain Response (metadata route handlers pass it through
+  // untouched).
+  const bytes = await response.arrayBuffer();
+  cacheSet(ogImageCache, cacheKey, bytes, OG_CACHE_TTL_MS);
+  return new Response(bytes, { headers: OG_RESPONSE_HEADERS });
 }
