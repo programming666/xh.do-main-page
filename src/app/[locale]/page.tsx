@@ -9,6 +9,7 @@ import { TechBackground } from "@/components/home/tech-background";
 import { Link } from "@/i18n/navigation";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { getHomePageData } from "@/lib/site-data";
+import { parseHeroBackgroundRect } from "@/lib/hero-crop";
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -69,6 +70,7 @@ export default async function LocaleHomePage({
             posterUrl={site.heroPosterUrl}
             effect={site.heroEffect as "none" | "scroll-pan" | "parallax"}
             backgroundPosition={site.heroBackgroundPosition}
+            backgroundRect={parseHeroBackgroundRect(site.heroBackgroundRect)}
             overlayOpacity={site.heroOverlayOpacity}
             intervalMs={site.heroImageIntervalMs}
             accentColor={site.accentColor}

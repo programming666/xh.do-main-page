@@ -192,6 +192,28 @@ export const siteSettingsSchema = z.object({
       "right bottom",
     ])
     .default("center"),
+  // JSON crop rect (0..1 each) — see src/lib/hero-crop.ts. The admin UI
+  // sends a JSON string; parse it back into an object for validation.
+  heroBackgroundRect: z
+    .preprocess((value) => {
+      if (typeof value === "string" && value.trim()) {
+        try {
+          return JSON.parse(value);
+        } catch {
+          return undefined;
+        }
+      }
+      return value ?? null;
+    },
+    z
+      .object({
+        x: z.number().min(0).max(1),
+        y: z.number().min(0).max(1),
+        w: z.number().min(0.001).max(1),
+        h: z.number().min(0.001).max(1),
+      })
+      .nullable()
+      .default(null)),
   accentColor: cleanedColor,
   gradientEnabled: z.boolean().default(false),
   gradientStart: cleanedColor,

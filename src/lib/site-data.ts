@@ -143,6 +143,7 @@ export async function ensureSiteSettings() {
       heroDarkPlaylist: null,
       heroImageIntervalMs: 4500,
       heroBackgroundPosition: "center",
+      heroBackgroundRect: null,
       logoUrl: null,
       accentColor: "#4cc9ff",
       gradientEnabled: true,

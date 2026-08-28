@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { CSSProperties } from "react";
 
+import { buildCropStyle, type HeroBackgroundRect } from "@/lib/hero-crop";
 
 import { useTheme } from "@/components/theme-provider";
 
@@ -25,6 +26,9 @@ type TechBackgroundProps = {
   // CSS background-position controlling which part of a cover-cropped hero
   // image is visible (e.g. "center", "left top", "right bottom").
   backgroundPosition?: string;
+  // Normalized crop rect {x,y,w,h} (0..1 each) — when present it overrides
+  // `backgroundPosition` and zoom-crops the image to exactly that region.
+  backgroundRect?: HeroBackgroundRect | null;
 };
 
 // Cross-fade duration when the user toggles light/dark. Slow enough to feel
@@ -163,10 +167,21 @@ export function TechBackground({
   gradientEnd,
   gradientAngle = 135,
   backgroundPosition = "center",
+  backgroundRect = null,
 }: TechBackgroundProps) {
   const { resolvedTheme } = useTheme();
   const [offset, setOffset] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  // Container box measured at runtime — required to translate the normalized
+  // crop rect into pixel background-size/position (the container is fluid, so
+  // this can't be precomputed at SSR time).
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  // Source image dimensions, loaded from the first media item (the compacted
+  // avif and the HD source share the same intrinsic size).
+  const [imageSize, setImageSize] = useState<{ w: number; h: number } | null>(
+    null,
+  );
 
   // Pre-compute both theme stacks so the inactive one stays mounted under the
   // active one. Toggling theme then becomes a simple opacity crossfade rather
@@ -184,6 +199,42 @@ export function TechBackground({
   const hasMedia =
     mediaType === "video" ? !!mediaUrl : lightStack.length > 0 || darkStack.length > 0;
 
+  // Measure the hero box once mounted and keep it in sync on resize.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setBox({ w: rect.width, h: rect.height });
+      }
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Load the first media item's intrinsic size (compacted + HD share it).
+  const sizeProbeUrl = darkStack[0] ?? lightStack[0] ?? mediaUrl ?? null;
+  useEffect(() => {
+    if (!sizeProbeUrl) return;
+    const img = new Image();
+    img.onload = () =>
+      setImageSize({ w: img.naturalWidth || 0, h: img.naturalHeight || 0 });
+    img.src = sizeProbeUrl;
+    return () => {
+      img.onload = null;
+    };
+  }, [sizeProbeUrl]);
+
+  // Translate the normalized crop rect into pixel background-size/position
+  // once both the image size and the container box are known.
+  const cropStyle = useMemo(() => {
+    if (!backgroundRect || !imageSize || !box) return null;
+    if (imageSize.w <= 0 || imageSize.h <= 0) return null;
+    return buildCropStyle(backgroundRect, imageSize.w, imageSize.h, box.w, box.h);
+  }, [backgroundRect, imageSize, box]);
   useEffect(() => {
     if (effect === "none") {
       return;
@@ -246,8 +297,19 @@ export function TechBackground({
 
   const isLight = resolvedTheme === "light";
 
+  const stackStyle = useMemo(
+    () => ({
+      ...transformStyle,
+      ...(cropStyle ?? { backgroundPosition }),
+    }),
+    [transformStyle, cropStyle, backgroundPosition],
+  );
+
   return (
-    <div className="absolute inset-0 overflow-hidden rounded-[2rem] border border-white/10">
+    <div
+      ref={boxRef}
+      className="absolute inset-0 overflow-hidden rounded-[2rem] border border-white/10"
+    >
       <div
         className="absolute inset-0 transition-[background] duration-[700ms] ease-out"
         style={{
@@ -276,13 +338,13 @@ export function TechBackground({
               slides={darkStack}
               activeIndex={activeIndex}
               active={!isLight}
-              style={{ ...transformStyle, backgroundPosition }}
+              style={stackStyle}
             />
             <SlideStack
               slides={lightStack}
               activeIndex={activeIndex}
               active={isLight}
-              style={{ ...transformStyle, backgroundPosition }}
+              style={stackStyle}
             />
           </>
         )

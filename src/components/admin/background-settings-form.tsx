@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { FilePicker } from "@/components/admin/file-picker";
+import { CropRectPicker } from "@/components/admin/crop-rect-picker";
+import { parseHeroBackgroundRect } from "@/lib/hero-crop";
 
 type BackgroundFormData = {
   showFriendLinks: boolean;
@@ -25,6 +27,7 @@ type BackgroundFormData = {
   heroOverlayOpacity: number;
   heroEffect: "none" | "scroll-pan" | "parallax";
   heroBackgroundPosition: string;
+  heroBackgroundRect: string | null;
 };
 
 const fieldClassName =
@@ -53,6 +56,7 @@ function FieldGroup({
     </label>
   );
 }
+
 
 // 3×3 grid of CSS background-position values — the admin picks which part of
 // a cover-cropped hero image is visible. Each cell renders a tiny square dot
@@ -219,6 +223,15 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
             <PositionPicker
               value={form.heroBackgroundPosition}
               onChange={(position) => setForm({ ...form, heroBackgroundPosition: position })}
+            />
+          </FieldGroup>
+          <FieldGroup className="md:col-span-2" label={t("heroBackgroundRectLabel")} hint={t("heroBackgroundRectHint")}>
+            <CropRectPicker
+              value={parseHeroBackgroundRect(form.heroBackgroundRect)}
+              imageUrl={form.heroMediaUrl || form.heroLightImageUrl || form.heroDarkImageUrl || null}
+              onChange={(rect) =>
+                setForm({ ...form, heroBackgroundRect: rect ? JSON.stringify(rect) : null })
+              }
             />
           </FieldGroup>
           <FieldGroup className="md:col-span-2" label={t("heroMediaUrl")} hint={t("heroMediaUrlHint")}>

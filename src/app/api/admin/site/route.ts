@@ -48,6 +48,8 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
     heroEffect: parsed.data.heroEffect ?? existing.heroEffect,
     heroBackgroundPosition:
       parsed.data.heroBackgroundPosition ?? existing.heroBackgroundPosition,
+    heroBackgroundRect:
+      parsed.data.heroBackgroundRect ?? existing.heroBackgroundRect,
     accentColor: parsed.data.accentColor ?? existing.accentColor,
     gradientEnabled: parsed.data.gradientEnabled ?? existing.gradientEnabled,
     gradientStart: parsed.data.gradientStart ?? existing.gradientStart,
@@ -218,6 +220,9 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
       heroOverlayOpacity: data.heroOverlayOpacity,
       heroEffect: data.heroEffect,
       heroBackgroundPosition: data.heroBackgroundPosition,
+      heroBackgroundRect: data.heroBackgroundRect
+        ? JSON.stringify(data.heroBackgroundRect)
+        : null,
       accentColor: data.accentColor,
       gradientEnabled: data.gradientEnabled,
       gradientStart: data.gradientStart,
@@ -253,6 +258,9 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
       heroOverlayOpacity: data.heroOverlayOpacity,
       heroEffect: data.heroEffect,
       heroBackgroundPosition: data.heroBackgroundPosition,
+      heroBackgroundRect: data.heroBackgroundRect
+        ? JSON.stringify(data.heroBackgroundRect)
+        : null,
       accentColor: data.accentColor,
       gradientEnabled: data.gradientEnabled,
       gradientStart: data.gradientStart,
