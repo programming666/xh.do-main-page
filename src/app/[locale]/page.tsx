@@ -58,7 +58,7 @@ export default async function LocaleHomePage({
 
   return (
     <main className="relative overflow-hidden px-4 pb-20 pt-24 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-6xl space-y-10">
+      <div className="content-shell space-y-10">
         <section className="glass-panel relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-12 lg:px-14 lg:py-16">
           <TechBackground
             mediaType={site.heroMediaType as "image" | "video"}
@@ -142,7 +142,7 @@ export default async function LocaleHomePage({
             </div>
           </div>
           {projects.length ? (
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-3">
               {projects.map((project) => (
                 <ProjectCard
                   key={project.id}

@@ -29,7 +29,7 @@ export default async function FriendsPage({
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 pb-20 pt-24 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-4xl space-y-10">
+      <div className="content-shell space-y-10">
         <div className="glass-panel rounded-[2rem] px-6 py-10 sm:px-10 sm:py-12">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -43,8 +43,8 @@ export default async function FriendsPage({
               {t("backHome")}
             </NextLink>
           </div>
-          
-          <div className="mt-12 grid gap-4 sm:grid-cols-2">
+
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {friendLinks.length ? friendLinks.map((item) => (
               <a
                 key={item.id}

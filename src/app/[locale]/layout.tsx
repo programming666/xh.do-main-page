@@ -179,8 +179,8 @@ export default async function LocaleLayout({
               </div>
             </noscript>
             <div className="min-h-screen">
-              <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-4 py-4 sm:px-6 lg:px-10">
-                <div className="pointer-events-auto flex items-center gap-3">
+              <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-4 py-4 sm:px-6 lg:px-10">
+                <div className="pointer-events-auto content-shell flex items-center justify-end gap-3">
                   <TopNavLink
                     locale={locale}
                     friendsLabel={t("friendLinks")}

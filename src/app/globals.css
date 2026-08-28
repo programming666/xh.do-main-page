@@ -155,6 +155,15 @@ option {
   text-shadow: 0 0 24px rgba(66, 194, 255, 0.18);
 }
 
+.content-shell {
+  margin-inline: auto;
+  width: 100%;
+  /* Narrow screens keep the classic 1152px measure; wide screens grow with
+     the viewport (72vw) up to a 2048px ceiling so hero/projects panels no
+     longer sit in a tiny centered column with huge empty gutters. */
+  max-width: clamp(72rem, 72vw, 128rem);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
