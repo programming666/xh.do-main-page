@@ -46,6 +46,70 @@ export function parseHeroBackgroundRect(
 }
 
 /**
+ * Per-image crop map: url → rect. Stored as JSON in SiteSettings.
+ * heroBackgroundRects. `null`/empty map means "no custom per-image crop".
+ */
+export type HeroBackgroundRects = Record<string, HeroBackgroundRect>;
+
+const RECT_KEYS = ["x", "y", "w", "h"] as const;
+
+function parseRectObject(v: unknown): HeroBackgroundRect | null {
+  if (typeof v !== "object" || v === null) return null;
+  const record = v as Record<string, unknown>;
+  if (RECT_KEYS.every((key) => typeof record[key] === "number")) {
+    return {
+      x: clamp01(record.x as number),
+      y: clamp01(record.y as number),
+      w: clamp01(record.w as number),
+      h: clamp01(record.h as number),
+    };
+  }
+  return null;
+}
+
+/** Tolerant parse of the JSON map stored in SiteSettings.heroBackgroundRects. */
+export function parseHeroBackgroundRects(
+  raw: string | null | undefined,
+): HeroBackgroundRects | null {
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw) as unknown;
+    if (typeof v !== "object" || v === null) return null;
+    const map: HeroBackgroundRects = {};
+    for (const [url, rectValue] of Object.entries(v as Record<string, unknown>)) {
+      const rect = parseRectObject(rectValue);
+      if (rect) map[url] = rect;
+    }
+    return Object.keys(map).length ? map : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Canonical serialization of a per-image crop map (null when empty). */
+export function serializeHeroBackgroundRects(
+  map: HeroBackgroundRects | null | undefined,
+): string | null {
+  if (!map) return null;
+  const entries = Object.entries(map).filter(([, rect]) => rect != null);
+  if (!entries.length) return null;
+  return JSON.stringify(Object.fromEntries(entries));
+}
+
+/**
+ * Resolve the effective crop for one hero image: per-image rect first, then
+ * the single legacy rect, then null (fall back to background-position).
+ */
+export function resolveHeroBackgroundRect(
+  perImage: HeroBackgroundRects | null | undefined,
+  url: string | undefined | null,
+  legacy: HeroBackgroundRect | null | undefined,
+): HeroBackgroundRect | null {
+  if (url && perImage && perImage[url]) return perImage[url];
+  return legacy ?? null;
+}
+
+/**
  * Compute the `background-size` / `background-position` pair that shows
  * exactly the rect region of the source image inside a container of
  * cw×ch CSS pixels, without distortion and with `cover` semantics (the rect

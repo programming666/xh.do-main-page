@@ -214,6 +214,32 @@ export const siteSettingsSchema = z.object({
       })
       .nullable()
       .default(null)),
+  // Per-image crop map {url: {x,y,w,h}} — each hero image can have its own
+  // crop region (light/dark stacks and playlist items). Same JSON-string
+  // transport as heroBackgroundRect.
+  heroBackgroundRects: z
+    .preprocess((value) => {
+      if (typeof value === "string" && value.trim()) {
+        try {
+          return JSON.parse(value);
+        } catch {
+          return undefined;
+        }
+      }
+      return value ?? null;
+    },
+    z
+      .record(
+        z.string(),
+        z.object({
+          x: z.number().min(0).max(1),
+          y: z.number().min(0).max(1),
+          w: z.number().min(0.001).max(1),
+          h: z.number().min(0.001).max(1),
+        }),
+      )
+      .nullable()
+      .optional()),
   accentColor: cleanedColor,
   gradientEnabled: z.boolean().default(false),
   gradientStart: cleanedColor,

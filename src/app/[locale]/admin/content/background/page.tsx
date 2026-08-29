@@ -36,6 +36,7 @@ export default async function BackgroundSettingsPage({
           heroEffect: site.heroEffect as "none" | "scroll-pan" | "parallax",
           heroBackgroundPosition: site.heroBackgroundPosition ?? "center",
           heroBackgroundRect: site.heroBackgroundRect ?? null,
+          heroBackgroundRects: site.heroBackgroundRects ?? null,
         }}
       />
     </AdminShell>

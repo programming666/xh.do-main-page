@@ -1,11 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { FilePicker } from "@/components/admin/file-picker";
 import { CropRectPicker } from "@/components/admin/crop-rect-picker";
-import { parseHeroBackgroundRect } from "@/lib/hero-crop";
+import {
+  parseHeroBackgroundRects,
+  serializeHeroBackgroundRects,
+  type HeroBackgroundRects,
+} from "@/lib/hero-crop";
 
 type BackgroundFormData = {
   showFriendLinks: boolean;
@@ -28,6 +32,7 @@ type BackgroundFormData = {
   heroEffect: "none" | "scroll-pan" | "parallax";
   heroBackgroundPosition: string;
   heroBackgroundRect: string | null;
+  heroBackgroundRects: string | null;
 };
 
 const fieldClassName =
@@ -112,12 +117,82 @@ function PositionPicker({
 }
 
 
+// One crop picker per hero image. Editing the rect writes into the shared
+// per-image map (keyed by URL); resetting deletes the entry so the image
+// falls back to the 9-grid position / cover behavior.
+function CropPickerForUrl({
+  url,
+  rects,
+  onRectsChange,
+  label,
+}: {
+  url: string;
+  rects: HeroBackgroundRects;
+  onRectsChange: (next: HeroBackgroundRects) => void;
+  label: string;
+}) {
+  const t = useTranslations("admin");
+  const rect = rects[url] ?? null;
+  return (
+    <FieldGroup className="md:col-span-2" label={label} hint={t("heroBackgroundRectPerImageHint")}>
+      <CropRectPicker
+        value={rect}
+        imageUrl={url}
+        onChange={(nextRect) => {
+          const next = { ...rects };
+          if (nextRect) next[url] = nextRect;
+          else delete next[url];
+          onRectsChange(next);
+        }}
+      />
+    </FieldGroup>
+  );
+}
+
+
 export function BackgroundSettingsForm({ initialData }: { initialData: BackgroundFormData }) {
   const t = useTranslations("admin");
   const [form, setForm] = useState(initialData);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Per-image crop map derived from the form's JSON field; editing any
+  // picker rewrites the map and serializes it back into the form.
+  const rects = useMemo(
+    () => parseHeroBackgroundRects(form.heroBackgroundRects) ?? {},
+    [form.heroBackgroundRects],
+  );
+  const setRects = (next: HeroBackgroundRects) =>
+    setForm((prev) => ({
+      ...prev,
+      heroBackgroundRects: serializeHeroBackgroundRects(next),
+    }));
+
+  const splitList = (value?: string | null) =>
+    (value ?? "").split("\n").map((item) => item.trim()).filter(Boolean);
+  const fallbackList = useMemo(() => {
+    const list = splitList(form.heroMediaPlaylist);
+    if (form.heroMediaUrl && !list.includes(form.heroMediaUrl))
+      list.unshift(form.heroMediaUrl);
+    return list;
+  }, [form.heroMediaUrl, form.heroMediaPlaylist]);
+  const lightOwnList = useMemo(() => {
+    if (!form.heroLightImageUrl && !form.heroLightPlaylist) return [];
+    const list = splitList(form.heroLightPlaylist);
+    if (form.heroLightImageUrl && !list.includes(form.heroLightImageUrl))
+      list.unshift(form.heroLightImageUrl);
+    return list;
+  }, [form.heroLightImageUrl, form.heroLightPlaylist]);
+  const darkOwnList = useMemo(() => {
+    if (!form.heroDarkImageUrl && !form.heroDarkPlaylist) return [];
+    const list = splitList(form.heroDarkPlaylist);
+    if (form.heroDarkImageUrl && !list.includes(form.heroDarkImageUrl))
+      list.unshift(form.heroDarkImageUrl);
+    return list;
+  }, [form.heroDarkImageUrl, form.heroDarkPlaylist]);
+
+  const shortUrl = (url: string) =>
+    url.length > 52 ? `${url.slice(0, 24)}…${url.slice(-24)}` : url;
   async function upload(kind: "backgrounds" | "logos", file?: File | null) {
     if (!file) return null;
     const body = new FormData();
@@ -225,14 +300,22 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
               onChange={(position) => setForm({ ...form, heroBackgroundPosition: position })}
             />
           </FieldGroup>
-          <FieldGroup className="md:col-span-2" label={t("heroBackgroundRectLabel")} hint={t("heroBackgroundRectHint")}>
-            <CropRectPicker
-              value={parseHeroBackgroundRect(form.heroBackgroundRect)}
-              imageUrl={form.heroMediaUrl || form.heroLightImageUrl || form.heroDarkImageUrl || null}
-              onChange={(rect) =>
-                setForm({ ...form, heroBackgroundRect: rect ? JSON.stringify(rect) : null })
-              }
-            />
+          <FieldGroup className="md:col-span-2" label={t("heroBackgroundRectPerImageLabel")} hint={t("heroBackgroundRectPerImageHint")}>
+            {fallbackList.length ? (
+              <div className="space-y-4">
+                {fallbackList.map((url, index) => (
+                  <CropPickerForUrl
+                    key={url}
+                    url={url}
+                    rects={rects}
+                    onRectsChange={setRects}
+                    label={`${t("heroBackgroundRectPerImageLabel")} ${index + 1} — ${shortUrl(url)}`}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[color:var(--muted)]">{t("heroBackgroundRectNoImage")}</p>
+            )}
           </FieldGroup>
           <FieldGroup className="md:col-span-2" label={t("heroMediaUrl")} hint={t("heroMediaUrlHint")}>
             <input className={fieldClassName} value={form.heroMediaUrl} onChange={(e) => setForm({ ...form, heroMediaUrl: e.target.value })} placeholder="https://example.com/background.webp" />
@@ -286,6 +369,19 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
               <FieldGroup className="md:col-span-2" label={t("darkHeroPlaylist")} hint={t("darkHeroPlaylistHint")}>
                 <textarea className={textareaClassName} value={form.heroDarkPlaylist} onChange={(e) => setForm({ ...form, heroDarkPlaylist: e.target.value })} placeholder={t("darkHeroPlaylist")} />
               </FieldGroup>
+              {darkOwnList.length ? (
+                <div className="md:col-span-2 space-y-4">
+                  {darkOwnList.map((url, index) => (
+                    <CropPickerForUrl
+                      key={url}
+                      url={url}
+                      rects={rects}
+                      onRectsChange={setRects}
+                      label={`${t("darkHeroCrop")} ${index + 1} — ${shortUrl(url)}`}
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -309,6 +405,19 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
               <FieldGroup className="md:col-span-2" label={t("lightHeroPlaylist")} hint={t("lightHeroPlaylistHint")}>
                 <textarea className={textareaClassName} value={form.heroLightPlaylist} onChange={(e) => setForm({ ...form, heroLightPlaylist: e.target.value })} placeholder={t("lightHeroPlaylist")} />
               </FieldGroup>
+              {lightOwnList.length ? (
+                <div className="md:col-span-2 space-y-4">
+                  {lightOwnList.map((url, index) => (
+                    <CropPickerForUrl
+                      key={url}
+                      url={url}
+                      rects={rects}
+                      onRectsChange={setRects}
+                      label={`${t("lightHeroCrop")} ${index + 1} — ${shortUrl(url)}`}
+                    />
+                  ))}
+                </div>
+              ) : null}
               <div className="md:col-span-2 rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-[color:var(--muted)]">
                 {t("themePlaylistHint")}
               </div>

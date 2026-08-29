@@ -120,6 +120,7 @@ model SiteSettings {
   heroEffect          String                    @default("scroll-pan")
   heroBackgroundPosition String                  @default("center")
   heroBackgroundRect  String?
+  heroBackgroundRects String?
   accentColor         String                    @default("#4cc9ff")
   gradientEnabled     Boolean                   @default(false)
   gradientStart       String                    @default("#1297ff")

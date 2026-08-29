@@ -144,6 +144,7 @@ export async function ensureSiteSettings() {
       heroImageIntervalMs: 4500,
       heroBackgroundPosition: "center",
       heroBackgroundRect: null,
+      heroBackgroundRects: null,
       logoUrl: null,
       accentColor: "#4cc9ff",
       gradientEnabled: true,

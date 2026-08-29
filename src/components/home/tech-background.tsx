@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { CSSProperties } from "react";
 
@@ -29,6 +29,10 @@ type TechBackgroundProps = {
   // Normalized crop rect {x,y,w,h} (0..1 each) — when present it overrides
   // `backgroundPosition` and zoom-crops the image to exactly that region.
   backgroundRect?: HeroBackgroundRect | null;
+  // Per-image crop map (url → rect) — each slide of the light/dark stacks
+  // resolves its own rect; falls back to `backgroundRect`, then to
+  // `backgroundPosition`.
+  backgroundRects?: Record<string, HeroBackgroundRect> | null;
 };
 
 // Cross-fade duration when the user toggles light/dark. Slow enough to feel
@@ -73,7 +77,7 @@ interface SlideStackProps {
   slides: string[];
   activeIndex: number;
   active: boolean;
-  style: CSSProperties;
+  styleFor: (url: string) => CSSProperties;
 }
 
 
@@ -129,7 +133,7 @@ function ProgressiveBackground({
 }
 
 
-function SlideStack({ slides, activeIndex, active, style }: SlideStackProps) {
+function SlideStack({ slides, activeIndex, active, styleFor }: SlideStackProps) {
   const visibleIndex = slides.length ? activeIndex % slides.length : 0;
   return (
     <div
@@ -144,7 +148,7 @@ function SlideStack({ slides, activeIndex, active, style }: SlideStackProps) {
           key={`${item}-${index}`}
           url={item}
           visible={index === visibleIndex}
-          style={style}
+          style={styleFor(item)}
         />
       ))}
     </div>
@@ -168,6 +172,7 @@ export function TechBackground({
   gradientAngle = 135,
   backgroundPosition = "center",
   backgroundRect = null,
+  backgroundRects = null,
 }: TechBackgroundProps) {
   const { resolvedTheme } = useTheme();
   const [offset, setOffset] = useState(0);
@@ -228,13 +233,33 @@ export function TechBackground({
     };
   }, [sizeProbeUrl]);
 
+  const transformStyle = useMemo(() => {
+    const translateY =
+      effect === "parallax" ? offset * 0.12 : effect === "scroll-pan" ? offset * 0.06 : 0;
+    return {
+      transform: `translate3d(0, ${translateY}px, 0) scale(1.08)`,
+    } satisfies CSSProperties;
+  }, [effect, offset]);
+
   // Translate the normalized crop rect into pixel background-size/position
   // once both the image size and the container box are known.
-  const cropStyle = useMemo(() => {
-    if (!backgroundRect || !imageSize || !box) return null;
-    if (imageSize.w <= 0 || imageSize.h <= 0) return null;
-    return buildCropStyle(backgroundRect, imageSize.w, imageSize.h, box.w, box.h);
-  }, [backgroundRect, imageSize, box]);
+  // Per-slide style: resolve the crop for the slide's own URL (per-image map
+  // first, legacy single rect second), then translate it into pixel
+  // background-size/position once the image size and container box are known.
+  const styleFor = useCallback(
+    (url: string): CSSProperties => {
+      const rect = backgroundRects?.[url] ?? backgroundRect ?? null;
+      const crop =
+        rect && imageSize && box && imageSize.w > 0 && imageSize.h > 0
+          ? buildCropStyle(rect, imageSize.w, imageSize.h, box.w, box.h)
+          : null;
+      return {
+        ...transformStyle,
+        ...(crop ?? { backgroundPosition }),
+      };
+    },
+    [backgroundRects, backgroundRect, imageSize, box, transformStyle, backgroundPosition],
+  );
   useEffect(() => {
     if (effect === "none") {
       return;
@@ -278,13 +303,6 @@ export function TechBackground({
     return () => window.clearInterval(timer);
   }, [intervalMs, mediaType, longestLength]);
 
-  const transformStyle = useMemo(() => {
-    const translateY =
-      effect === "parallax" ? offset * 0.12 : effect === "scroll-pan" ? offset * 0.06 : 0;
-    return {
-      transform: `translate3d(0, ${translateY}px, 0) scale(1.08)`,
-    } satisfies CSSProperties;
-  }, [effect, offset]);
 
   const lightOverlayBackground = useMemo(
     () => buildOverlayGradient(overlayOpacity, "light"),
@@ -297,13 +315,6 @@ export function TechBackground({
 
   const isLight = resolvedTheme === "light";
 
-  const stackStyle = useMemo(
-    () => ({
-      ...transformStyle,
-      ...(cropStyle ?? { backgroundPosition }),
-    }),
-    [transformStyle, cropStyle, backgroundPosition],
-  );
 
   return (
     <div
@@ -338,13 +349,13 @@ export function TechBackground({
               slides={darkStack}
               activeIndex={activeIndex}
               active={!isLight}
-              style={stackStyle}
+              styleFor={styleFor}
             />
             <SlideStack
               slides={lightStack}
               activeIndex={activeIndex}
               active={isLight}
-              style={stackStyle}
+              styleFor={styleFor}
             />
           </>
         )
