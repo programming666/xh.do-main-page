@@ -108,6 +108,48 @@ export function resolveHeroBackgroundRect(
   if (url && perImage && perImage[url]) return perImage[url];
   return legacy ?? null;
 }
+export type ResizeDir = "se" | "ne" | "nw" | "sw";
+
+/**
+ * Resize `rect` by dragging the given corner by (dx, dy) in normalized units.
+ * The opposite corner stays fixed; the dragged corner is clamped so it never
+ * crosses the fixed corner (MIN_SIZE) or leaves the 0..1 canvas.
+ */
+export function resizeHeroBackgroundRect(
+  rect: HeroBackgroundRect,
+  dir: ResizeDir,
+  dx: number,
+  dy: number,
+  minSize = 0.05,
+): HeroBackgroundRect {
+  const clamp = (v: number, lo: number, hi: number) =>
+    Math.min(Math.max(v, lo), hi);
+  let { x, y, w, h } = rect;
+  if (dir === "se") {
+    w = clamp(w + dx, minSize, 1 - x);
+    h = clamp(h + dy, minSize, 1 - y);
+  } else if (dir === "ne") {
+    w = clamp(w + dx, minSize, 1 - x);
+    const ny = clamp(y + dy, 0, y + h - minSize);
+    y = ny;
+    h = rect.y + rect.h - ny;
+  } else if (dir === "nw") {
+    const nx = clamp(x + dx, 0, x + w - minSize);
+    const ny = clamp(y + dy, 0, y + h - minSize);
+    x = nx;
+    y = ny;
+    w = rect.x + rect.w - nx;
+    h = rect.y + rect.h - ny;
+  } else {
+    // sw
+    const nx = clamp(x + dx, 0, x + w - minSize);
+    x = nx;
+    w = rect.x + rect.w - nx;
+    h = clamp(h + dy, minSize, 1 - y);
+  }
+  return { x, y, w, h };
+}
+
 
 /**
  * Compute the `background-size` / `background-position` pair that shows

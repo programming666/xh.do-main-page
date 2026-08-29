@@ -6,16 +6,20 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 
 import { useTranslations } from "next-intl";
 
-import { FULL_RECT, type HeroBackgroundRect } from "@/lib/hero-crop";
+import {
+  FULL_RECT,
+  resizeHeroBackgroundRect,
+  type HeroBackgroundRect,
+  type ResizeDir,
+} from "@/lib/hero-crop";
 
 type DragState = {
-  mode: "move" | "resize";
+  mode: "move" | ResizeDir;
   startX: number;
   startY: number;
   startRect: HeroBackgroundRect;
 };
 
-const MIN_SIZE = 0.05;
 
 /**
  * Interactive crop-rect picker. Shows the source image and a draggable /
@@ -44,7 +48,7 @@ export function CropRectPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const suppressClickRef = useRef(false);
-
+  const dragRef = useRef<DragState | null>(null);
   useEffect(() => {
     const handler = (event: MouseEvent) => {
       if (suppressClickRef.current) {
@@ -76,7 +80,7 @@ export function CropRectPicker({
 
   const onPointerDown = (
     event: ReactPointerEvent,
-    mode: "move" | "resize",
+    mode: "move" | ResizeDir,
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -90,12 +94,14 @@ export function CropRectPicker({
       // ignore — pointer capture is an enhancement
     }
     const point = toRelative(event.clientX, event.clientY);
-    setDrag({
+    const next = {
       mode,
       startX: point.x,
       startY: point.y,
       startRect: { ...rect },
-    });
+    };
+    dragRef.current = next;
+    setDrag(next);
     // Suppress the click default action that follows this pointer sequence
     // (see component doc comment). The click handler clears the flag itself
     // so the very next click is neutralized, which prevents the focus move
@@ -104,6 +110,7 @@ export function CropRectPicker({
   };
 
   const onPointerMove = (event: ReactPointerEvent) => {
+    const drag = dragRef.current;
     if (!drag) return;
     const point = toRelative(event.clientX, event.clientY);
     const { mode, startX, startY, startRect } = drag;
@@ -115,16 +122,21 @@ export function CropRectPicker({
         h: startRect.h,
       });
     } else {
-      onChange({
-        x: startRect.x,
-        y: startRect.y,
-        w: clamp(startRect.w + (point.x - startX), MIN_SIZE, 1 - startRect.x),
-        h: clamp(startRect.h + (point.y - startY), MIN_SIZE, 1 - startRect.y),
-      });
+      onChange(
+        resizeHeroBackgroundRect(
+          startRect,
+          drag.mode as ResizeDir,
+          point.x - startX,
+          point.y - startY,
+        ),
+      );
     }
   };
 
-  const endDrag = () => setDrag(null);
+  const endDrag = () => {
+    dragRef.current = null;
+    setDrag(null);
+  };
 
   return (
     <div className="space-y-2">
@@ -172,10 +184,22 @@ export function CropRectPicker({
           <span className="pointer-events-none absolute left-1 top-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-100/80">
             {isCustom ? t("heroBackgroundRectCrop") : t("heroBackgroundRectFull")}
           </span>
-          {/* Resize handle (bottom-right corner) */}
+          {/* Corner resize handles: SE / NE / NW / SW */}
           <div
             className="absolute -bottom-1.5 -right-1.5 h-4 w-4 cursor-nwse-resize rounded-[4px] border border-cyan-200 bg-cyan-400 shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
-            onPointerDown={(event) => onPointerDown(event, "resize")}
+            onPointerDown={(event) => onPointerDown(event, "se")}
+          />
+          <div
+            className="absolute -right-1.5 -top-1.5 h-4 w-4 cursor-nesw-resize rounded-[4px] border border-cyan-200 bg-cyan-400 shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            onPointerDown={(event) => onPointerDown(event, "ne")}
+          />
+          <div
+            className="absolute -left-1.5 -top-1.5 h-4 w-4 cursor-nwse-resize rounded-[4px] border border-cyan-200 bg-cyan-400 shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            onPointerDown={(event) => onPointerDown(event, "nw")}
+          />
+          <div
+            className="absolute -bottom-1.5 -left-1.5 h-4 w-4 cursor-nesw-resize rounded-[4px] border border-cyan-200 bg-cyan-400 shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            onPointerDown={(event) => onPointerDown(event, "sw")}
           />
         </div>
       </div>
