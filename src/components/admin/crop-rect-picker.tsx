@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { PointerEvent as ReactPointerEvent } from "react";
 
@@ -22,6 +22,14 @@ const MIN_SIZE = 0.05;
  * resizable rectangle; the admin picks exactly which region of the hero
  * background should be visible. `value` is normalized (0..1 each, relative
  * to the source image); `null` means "whole image centered".
+ *
+ * NOTE on a Chrome quirk: after a pointerdown/pointerup on this picker
+ * (drag or plain click), the click's default action moves focus to the next
+ * focusable element in DOM order (e.g. the "reset" button), and Chrome then
+ * fires a SECOND synthetic click on that newly-focused element. That phantom
+ * click would reset the crop on every drag end. We suppress the click's
+ * default action in the capture phase right after our own pointerdown, which
+ * prevents the focus move and the phantom click entirely.
  */
 export function CropRectPicker({
   value,
@@ -35,6 +43,18 @@ export function CropRectPicker({
   const t = useTranslations("admin");
   const containerRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    const handler = (event: MouseEvent) => {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        event.preventDefault();
+      }
+    };
+    document.addEventListener("click", handler, true);
+    return () => document.removeEventListener("click", handler, true);
+  }, []);
 
   // Preview state: null → the full-image dashed box (drag its handle to
   // create a custom crop). Custom rect → solid box.
@@ -63,7 +83,9 @@ export function CropRectPicker({
     // Best-effort capture; synthetic events (tests) have no active pointer
     // and throw — the drag still works via bubbling in that case.
     try {
-      (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+      (event.currentTarget as HTMLElement).setPointerCapture?.(
+        event.pointerId,
+      );
     } catch {
       // ignore — pointer capture is an enhancement
     }
@@ -74,6 +96,11 @@ export function CropRectPicker({
       startY: point.y,
       startRect: { ...rect },
     });
+    // Suppress the click default action that follows this pointer sequence
+    // (see component doc comment). The click handler clears the flag itself
+    // so the very next click is neutralized, which prevents the focus move
+    // and the phantom second click entirely.
+    suppressClickRef.current = true;
   };
 
   const onPointerMove = (event: ReactPointerEvent) => {
@@ -116,6 +143,7 @@ export function CropRectPicker({
           // w-full h-auto keeps the container exactly the size of the
           // rendered image (no letterbox), so the normalized rect maps 1:1
           // onto percentage coordinates.
+          // eslint-disable-next-line @next/next/no-img-element -- natural size needed via ref probe
           <img
             src={imageUrl}
             alt=""
