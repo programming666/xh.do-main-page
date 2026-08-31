@@ -14,14 +14,15 @@
     "featured": "Featured work",
     "projects": "Projects",
     "aboutSection": "About",
-    "visitGithub": "Visit my GitHub profile",
     "friendLinks": "Friend links",
     "footerTitle": "More links",
     "footerTagline": "{siteName} : an evolving personal digital space",
     "emptyProjects": "No projects yet. Add them from the admin panel.",
     "emptyFriendLinks": "No friend links yet",
     "viewAllFriendLinks": "View all friend links",
-    "backHome": "Back to Home"
+    "backHome": "Back to Home",
+    "contactBarTitle": "Contact",
+    "contactBarHint": "Reach me directly"
   },
   "admin": {
     "loginTitle": "Admin sign in",

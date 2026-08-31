@@ -11,22 +11,6 @@ import { routing, type AppLocale } from "@/i18n/routing";
 import { getHomePageData } from "@/lib/site-data";
 import { parseHeroBackgroundRect, parseHeroBackgroundRects } from "@/lib/hero-crop";
 
-function GithubIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-      className={className}
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M12 .5C5.73.5.75 5.48.75 11.75c0 4.96 3.21 9.16 7.67 10.65.56.1.77-.24.77-.54 0-.27-.01-.97-.02-1.91-3.12.68-3.78-1.5-3.78-1.5-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.49-.28-5.11-1.24-5.11-5.54 0-1.22.44-2.22 1.16-3.01-.12-.28-.5-1.43.11-2.98 0 0 .94-.3 3.09 1.15.9-.25 1.86-.37 2.82-.38.96.01 1.92.13 2.82.38 2.15-1.45 3.09-1.15 3.09-1.15.61 1.55.23 2.7.11 2.98.72.79 1.16 1.79 1.16 3.01 0 4.31-2.63 5.26-5.13 5.54.4.34.76 1.02.76 2.06 0 1.49-.01 2.69-.01 3.06 0 .3.2.65.78.54 4.46-1.49 7.67-5.69 7.67-10.65C23.25 5.48 18.27.5 12 .5Z"
-      />
-    </svg>
-  );
-}
 
 // ISR: regenerate the static HTML at most every 60s so the homepage stays
 // cacheable at the CDN (fixes the 3.4s cold TTFB / 6.8s mobile LCP) while
@@ -118,21 +102,19 @@ export default async function LocaleHomePage({
             <div id="about" className="space-y-4 rounded-[1.75rem] border border-white/10 bg-slate-950/35 p-6 text-sm text-slate-200/82 backdrop-blur-sm">
               <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">{translation.aboutTitle}</p>
               <p className="leading-7">{translation.aboutBody}</p>
-              {contactLinks.length ? (
-                <ContactLinks links={contactLinks} />
-              ) : site.githubUrl ? (
-                <a
-                  href={site.githubUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/5 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-cyan-200 transition-colors duration-200 ease-out hover:border-cyan-300/45 hover:bg-cyan-300/10"
-                >
-                  <GithubIcon className="h-4 w-4" />
-                  <span>{t("visitGithub")}</span>
-                </a>
-              ) : null}
             </div>
           </div>
+          {contactLinks.length ? (
+            <div className="relative z-10 mt-12 rounded-2xl border border-white/10 bg-slate-950/30 px-6 py-5 backdrop-blur-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">{t("contactBarTitle")}</p>
+                <p className="hidden text-[11px] text-slate-400/70 sm:block">{t("contactBarHint")}</p>
+              </div>
+              <div className="mt-4">
+                <ContactLinks links={contactLinks} />
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section id="projects" className="space-y-6">

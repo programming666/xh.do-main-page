@@ -14,14 +14,15 @@
     "featured": "精选项目",
     "projects": "项目数量",
     "aboutSection": "关于",
-    "visitGithub": "访问我的 GitHub 主页",
     "friendLinks": "友链",
     "footerTitle": "更多链接",
     "footerTagline": "{siteName} : 持续演化中的个人数字空间",
     "emptyProjects": "暂无项目，进入后台后即可添加。",
     "emptyFriendLinks": "暂无友链",
     "viewAllFriendLinks": "查看所有友链",
-    "backHome": "返回首页"
+    "backHome": "返回首页",
+    "contactBarTitle": "联系方式",
+    "contactBarHint": "点击图标直达"
   },
   "admin": {
     "loginTitle": "管理员登录",
