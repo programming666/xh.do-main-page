@@ -205,7 +205,8 @@
     "contactLinksEditor": "Add / edit contact link",
     "contactLinkName": "Link label",
     "contactLinkImageUrl": "Icon image URL",
-    "emptyContactLinks": "No contact links yet. Add one on the right."
+    "emptyContactLinks": "No contact links yet. Add one on the right.",
+    "emptyFriendLinks": "No friend links yet"
   },
   "noscript": {
     "title": "JavaScript is required",

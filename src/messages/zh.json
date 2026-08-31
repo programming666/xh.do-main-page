@@ -205,7 +205,8 @@
     "contactLinksEditor": "添加 / 编辑联系方式",
     "contactLinkName": "链接名称",
     "contactLinkImageUrl": "图标图片 URL",
-    "emptyContactLinks": "还没有联系方式，从右侧添加"
+    "emptyContactLinks": "还没有联系方式，从右侧添加",
+    "emptyFriendLinks": "暂无友链"
   },
   "noscript": {
     "title": "本站需要启用 JavaScript",
