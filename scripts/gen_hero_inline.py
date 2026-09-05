@@ -24,6 +24,8 @@ import re
 import sys
 import urllib.request
 
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+
 RASTER_EXT_RE = re.compile(r"\.(webp|png|jpe?g|avif)$", re.IGNORECASE)
 OUT_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -61,7 +63,7 @@ def compacted_url(url: str) -> str | None:
 def main() -> int:
     base = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:3001/api/public/home"
     try:
-        with urllib.request.urlopen(base, timeout=10) as resp:
+        with urllib.request.urlopen(urllib.request.Request(base, headers={"User-Agent": UA}), timeout=10) as resp:
             data = json_load(resp.read())
         # /api/public/home returns { site, projects, friendLinks, contactLinks }
         # — hero media lives under data["site"].
@@ -78,7 +80,7 @@ def main() -> int:
         url = compacted_url(first)
         if not url:
             raise RuntimeError(f"first hero item has no compacted twin: {first!r}")
-        with urllib.request.urlopen(url, timeout=20) as resp:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": UA}), timeout=20) as resp:
             raw = resp.read()
         if not raw or len(raw) > MAX_INLINE_BYTES:
             raise RuntimeError(f"compacted payload too large ({len(raw)} bytes)")
