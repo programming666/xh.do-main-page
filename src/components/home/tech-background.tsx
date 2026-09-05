@@ -122,7 +122,10 @@ function ProgressiveBackground({
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             ...style,
-            backgroundImage: `url("${escapeUrl(high)}")`,
+            // Only attach the HD url once the compacted layer has painted and
+            // the browser went idle — attaching it at mount made the 200KB+
+            // webp compete with the LCP-critical compacted fetch.
+            backgroundImage: highReady ? `url("${escapeUrl(high)}")` : undefined,
             opacity: highReady ? 1 : 0,
             transition: `opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)`,
           }}

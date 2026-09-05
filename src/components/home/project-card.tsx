@@ -1,13 +1,18 @@
 "use client";
 
 import Image from "next/image";
+import { useRef } from "react";
 
 import { useProgressiveImage } from "./progressive-image";
 function ProjectCover({ coverUrl, alt }: { coverUrl: string; alt: string }) {
-  const { low, high, highReady } = useProgressiveImage(coverUrl);
+  const coverRef = useRef<HTMLDivElement>(null);
+  const { low, high, highReady } = useProgressiveImage(coverUrl, {
+    defer: "visible",
+    el: coverRef,
+  });
   const hasHigh = high !== low;
   return (
-    <>
+    <div ref={coverRef} className="absolute inset-0">
       {/*
         Blurred copy of the same image fills any letterbox area with
         colors sampled from the image itself, so the contained
@@ -21,6 +26,7 @@ function ProjectCover({ coverUrl, alt }: { coverUrl: string; alt: string }) {
         aria-hidden="true"
         fill
         quality={65}
+        loading="lazy"
         sizes="(max-width: 640px) 100vw, (max-width: 1536px) 50vw, 33vw"
         className="
           object-cover scale-110 blur-2xl opacity-50
@@ -29,23 +35,21 @@ function ProjectCover({ coverUrl, alt }: { coverUrl: string; alt: string }) {
           group-hover:opacity-70
         "
       />
-      <Image
-        src={high}
-        alt={alt}
-        fill
-        quality={65}
-        sizes="(max-width: 640px) 100vw, (max-width: 1536px) 50vw, 33vw"
-        style={{
-          opacity: hasHigh ? (highReady ? 1 : 0) : 1,
-          transition:
-            "opacity 600ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1), filter 200ms cubic-bezier(0.22, 1, 0.36, 1)",
-        }}
-        className="
-          object-contain
-          group-hover:scale-[1.03] group-hover:brightness-110
-        "
-      />
-    </>
+      {!hasHigh || highReady ? (
+        <Image
+          src={high}
+          alt={alt}
+          fill
+          quality={65}
+          sizes="(max-width: 640px) 100vw, (max-width: 1536px) 50vw, 33vw"
+          style={{
+            transition:
+              "transform 200ms cubic-bezier(0.22, 1, 0.36, 1), filter 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
+          className={`object-contain ${hasHigh ? "px-fade-in" : ""} group-hover:scale-[1.03] group-hover:brightness-110`}
+        />
+      ) : null}
+    </div>
   );
 }
 
