@@ -11,6 +11,7 @@ import { TopNavLink } from "@/components/top-nav-link";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { getSiteSettings } from "@/lib/site-data";
 import { getCompactedUrl } from "@/lib/media-compacted";
+import { HERO_INLINE_AVIF } from "@/lib/generated-hero-inline";
 
 import "../globals.css";
 
@@ -151,12 +152,15 @@ export default async function LocaleLayout({
           }}
         />
         {/* This is supposed to be in the head. ES module boundary. */}
-        {site.heroMediaUrl ? (
+        {site.heroMediaUrl && !HERO_INLINE_AVIF ? (
           /*
             Preload the compacted (low-byte) twin instead of the HD source:
             it is the layer actually painted first, it is ~half the bytes,
             and the HD webp still fades in afterwards via the progressive
             hook. Cuts the hero's early-window bandwidth roughly in half.
+            When the deploy pipeline inlines the first slide as a data: URI
+            (HERO_INLINE_AVIF), there is nothing to preload — the image is
+            already inside the HTML.
           */
           <link rel="preload" as="image" href={getCompactedUrl(site.heroMediaUrl) ?? site.heroMediaUrl} fetchPriority="high" />
         ) : null}

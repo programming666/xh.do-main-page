@@ -33,6 +33,9 @@ type TechBackgroundProps = {
   // resolves its own rect; falls back to `backgroundRect`, then to
   // `backgroundPosition`.
   backgroundRects?: Record<string, HeroBackgroundRect> | null;
+  // Deploy-inlined data: URI of the dark stack's first slide (LCP image).
+  // When set, that slide paints it instead of fetching the compacted URL.
+  inlineDarkFirst?: string | null;
 };
 
 // Cross-fade duration when the user toggles light/dark. Slow enough to feel
@@ -79,13 +82,14 @@ interface SlideStackProps {
   active: boolean;
   styleFor: (url: string) => CSSProperties;
 }
-
-
 interface ProgressiveBackgroundProps {
   url: string;
   visible: boolean;
   style: CSSProperties;
   crossfadeMs?: number;
+  // When set, paint this instead of the compacted URL (deploy-inlined
+  // data: URI for the first slide — eliminates the LCP image fetch).
+  lowOverride?: string | null;
 }
 
 // Paints the compacted (low-byte) image immediately, then preloads the
@@ -99,8 +103,10 @@ function ProgressiveBackground({
   visible,
   style,
   crossfadeMs = 1400,
+  lowOverride = null,
 }: ProgressiveBackgroundProps) {
   const { low, high, highReady } = useProgressiveImage(url);
+  const lowUrl = lowOverride ?? low;
   const escapeUrl = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   return (
     <div
@@ -115,7 +121,7 @@ function ProgressiveBackground({
           are absolutely inset-0 so the swap never affects layout). */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ ...style, backgroundImage: `url("${escapeUrl(low)}")` }}
+        style={{ ...style, backgroundImage: `url("${escapeUrl(lowUrl)}")` }}
       />
       {high !== low && (
         <div
@@ -136,20 +142,21 @@ function ProgressiveBackground({
 }
 
 
-function SlideStack({ slides, activeIndex, active, styleFor }: SlideStackProps) {
+function SlideStack({ slides, activeIndex, active, styleFor, firstLowOverride }: SlideStackProps & { firstLowOverride?: string | null }) {
   const visibleIndex = slides.length ? activeIndex % slides.length : 0;
   return (
     <div
       className="absolute inset-0"
       style={{
         opacity: active ? 1 : 0,
-        transition: `opacity ${THEME_CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+        transition: `opacity ${THEME_CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`
       }}
     >
       {slides.map((item, index) => (
         <ProgressiveBackground
           key={`${item}-${index}`}
           url={item}
+          lowOverride={index === 0 ? firstLowOverride : null}
           visible={index === visibleIndex}
           style={styleFor(item)}
         />
@@ -176,6 +183,7 @@ export function TechBackground({
   backgroundPosition = "center",
   backgroundRect = null,
   backgroundRects = null,
+  inlineDarkFirst = null,
 }: TechBackgroundProps) {
   const { resolvedTheme } = useTheme();
   const [offset, setOffset] = useState(0);
@@ -224,7 +232,7 @@ export function TechBackground({
   }, []);
 
   // Load the first media item's intrinsic size (compacted + HD share it).
-  const sizeProbeUrl = darkStack[0] ?? lightStack[0] ?? mediaUrl ?? null;
+  const sizeProbeUrl = inlineDarkFirst ?? darkStack[0] ?? lightStack[0] ?? mediaUrl ?? null;
   useEffect(() => {
     if (!sizeProbeUrl) return;
     const img = new Image();
@@ -353,6 +361,7 @@ export function TechBackground({
               activeIndex={activeIndex}
               active={!isLight}
               styleFor={styleFor}
+              firstLowOverride={inlineDarkFirst}
             />
             <SlideStack
               slides={lightStack}

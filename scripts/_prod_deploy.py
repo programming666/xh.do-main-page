@@ -38,6 +38,11 @@ DEPLOY_STEPS = [
         "cmd": "su - xhdo -c \"cd /opt/xhdo/app && npx prisma migrate deploy 2>&1 | tail -10\"",
     },
     {
+        "label": "gen hero inline avif",
+        "cmd": "su - xhdo -c \"cd /opt/xhdo/app && python3 scripts/gen_hero_inline.py 2>&1 | tail -3\"",
+        "timeout": 60,
+    },
+    {
         "label": "npm run build",
         "cmd": "su - xhdo -c \"cd /opt/xhdo/app && npm run build 2>&1 | tail -20\"",
         "timeout": 240,

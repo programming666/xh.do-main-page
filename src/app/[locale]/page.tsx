@@ -9,6 +9,7 @@ import { TechBackground } from "@/components/home/tech-background";
 import { Link } from "@/i18n/navigation";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { getHomePageData } from "@/lib/site-data";
+import { HERO_INLINE_AVIF } from "@/lib/generated-hero-inline";
 import { parseHeroBackgroundRect, parseHeroBackgroundRects } from "@/lib/hero-crop";
 
 
@@ -63,6 +64,7 @@ export default async function LocaleHomePage({
             gradientStart={site.gradientStart}
             gradientEnd={site.gradientEnd}
             gradientAngle={site.gradientAngle}
+            inlineDarkFirst={HERO_INLINE_AVIF}
           />
           <div className="relative z-10 grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div className="space-y-6">
