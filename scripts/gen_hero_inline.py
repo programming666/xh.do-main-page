@@ -63,10 +63,13 @@ def main() -> int:
     try:
         with urllib.request.urlopen(base, timeout=10) as resp:
             data = json_load(resp.read())
+        # /api/public/home returns { site, projects, friendLinks, contactLinks }
+        # — hero media lives under data["site"].
+        site = data.get("site") or data
         items = (
-            data.get("heroDarkItems")
-            or data.get("heroMediaItems")
-            or data.get("heroMediaUrl")
+            site.get("heroDarkItems")
+            or site.get("heroMediaItems")
+            or site.get("heroMediaUrl")
             or []
         )
         first = items[0] if isinstance(items, list) and items else items
