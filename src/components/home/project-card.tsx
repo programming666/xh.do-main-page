@@ -20,7 +20,8 @@ function ProjectCover({ coverUrl, alt }: { coverUrl: string; alt: string }) {
         alt=""
         aria-hidden="true"
         fill
-        sizes="(max-width: 1024px) 100vw, 50vw"
+        quality={65}
+        sizes="(max-width: 640px) 100vw, (max-width: 1536px) 50vw, 33vw"
         className="
           object-cover scale-110 blur-2xl opacity-50
           transition-opacity duration-200
@@ -32,7 +33,8 @@ function ProjectCover({ coverUrl, alt }: { coverUrl: string; alt: string }) {
         src={high}
         alt={alt}
         fill
-        sizes="(max-width: 1024px) 100vw, 50vw"
+        quality={65}
+        sizes="(max-width: 640px) 100vw, (max-width: 1536px) 50vw, 33vw"
         style={{
           opacity: hasHigh ? (highReady ? 1 : 0) : 1,
           transition:

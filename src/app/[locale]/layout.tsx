@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TopNavLink } from "@/components/top-nav-link";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { getSiteSettings } from "@/lib/site-data";
+import { getCompactedUrl } from "@/lib/media-compacted";
 
 import "../globals.css";
 
@@ -151,7 +152,13 @@ export default async function LocaleLayout({
         />
         {/* This is supposed to be in the head. ES module boundary. */}
         {site.heroMediaUrl ? (
-          <link rel="preload" as="image" href={site.heroMediaUrl} fetchPriority="high" />
+          /*
+            Preload the compacted (low-byte) twin instead of the HD source:
+            it is the layer actually painted first, it is ~half the bytes,
+            and the HD webp still fades in afterwards via the progressive
+            hook. Cuts the hero's early-window bandwidth roughly in half.
+          */
+          <link rel="preload" as="image" href={getCompactedUrl(site.heroMediaUrl) ?? site.heroMediaUrl} fetchPriority="high" />
         ) : null}
       </head>
       <body className="min-h-full bg-background text-foreground antialiased">

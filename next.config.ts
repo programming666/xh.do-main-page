@@ -61,6 +61,15 @@ const nextConfig: NextConfig = {
   // Strip the X-Powered-By: Next.js header — minor fingerprinting hygiene.
   poweredByHeader: false,
   images: {
+    // Cap the srcSet ceiling: project covers render at ≤ ~620px per card,
+    // so 1920/2048/3840 candidates only ever get picked by mistake and
+    // inflate the mobile payload (Lighthouse saw 4.85 MiB total). The hero
+    // is a CSS background (not next/image), so this only governs covers.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1536],
+    // Next 16 dropped `images.quality` — allowed levels live in `qualities`.
+    // [65] makes every optimized image 65%: screenshots look identical and
+    // it trims ~15-20% off each payload.
+    qualities: [65],
     // Only the dedicated CDN is allowed to serve through next/image's
     // optimizer. `/uploads/*` is local and bypasses remotePatterns.
     // Adding a new host? Mirror the change in `src/lib/validation.ts`
