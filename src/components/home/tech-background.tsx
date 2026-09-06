@@ -84,6 +84,7 @@ interface SlideStackProps {
   activeIndex: number;
   active: boolean;
   styleFor: (url: string) => CSSProperties;
+  hdEnabled?: boolean;
 }
 interface ProgressiveBackgroundProps {
   url: string;
@@ -93,6 +94,10 @@ interface ProgressiveBackgroundProps {
   // When set, paint this instead of the compacted URL (deploy-inlined
   // data: URI for the first slide — eliminates the LCP image fetch).
   lowOverride?: string | null;
+  // Mount the full-resolution fade-in layer only on wide screens. On narrow
+  // viewports the swap repaints the LCP element and re-baselines LCP to the
+  // HD fade time, stretching the metric well past the first-paint image.
+  enableHd?: boolean;
 }
 
 // Paints the compacted (low-byte) image immediately, then preloads the
@@ -107,6 +112,7 @@ function ProgressiveBackground({
   style,
   crossfadeMs = 1400,
   lowOverride = null,
+  enableHd = true,
 }: ProgressiveBackgroundProps) {
   const { low, high, highReady } = useProgressiveImage(url);
   const lowUrl = lowOverride ?? low;
@@ -126,7 +132,7 @@ function ProgressiveBackground({
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ ...style, backgroundImage: `url("${escapeUrl(firstFrameUrl(lowUrl))}")` }}
       />
-      {high !== low && (
+      {enableHd && high !== low && (
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
@@ -145,7 +151,7 @@ function ProgressiveBackground({
 }
 
 
-function SlideStack({ slides, activeIndex, active, styleFor, firstLowOverride }: SlideStackProps & { firstLowOverride?: string | null }) {
+function SlideStack({ slides, activeIndex, active, styleFor, firstLowOverride, hdEnabled = true }: SlideStackProps & { firstLowOverride?: string | null }) {
   const visibleIndex = slides.length ? activeIndex % slides.length : 0;
   return (
     <div
@@ -162,6 +168,7 @@ function SlideStack({ slides, activeIndex, active, styleFor, firstLowOverride }:
           lowOverride={index === 0 ? firstLowOverride : null}
           visible={index === visibleIndex}
           style={styleFor(item)}
+          enableHd={hdEnabled}
         />
       ))}
     </div>
@@ -369,12 +376,14 @@ export function TechBackground({
               active={!isLight}
               styleFor={styleFor}
               firstLowOverride={inlineDarkFirst}
+              hdEnabled={box !== null && box.w >= 1280}
             />
             <SlideStack
               slides={lightStack}
               activeIndex={activeIndex}
               active={isLight}
               styleFor={styleFor}
+              hdEnabled={box !== null && box.w >= 1280}
             />
           </>
         )
