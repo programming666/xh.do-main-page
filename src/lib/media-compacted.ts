@@ -55,21 +55,17 @@ export function resolveProgressivePair(
 }
 
 /**
- * Next.js image-optimizer URL for a compacted first-paint asset, downscaled
- * so the browser decodes ≈0.6MP (1080w) instead of the full payload the CDN
- * emits (1920×1080 at the moment) — a CSS background always decodes the
- * intrinsic size, which is the main CPU tail of the LCP element on
- * low-end phones. Deterministic (same src+w+q ⇒ same cached optimizer
- * output), so the SSR preload link and the rendered background attach to
- * the identical resource.
+ * First-frame URL for a compacted raster twin: the CDN pipeline emits a
+ * thin 1024-edge `-first.avif` (≤48 KB, ~0.6MP intrinsic) alongside the
+ * compacted twin. The hero background and its preload attach to it
+ * directly — a CSS background decodes the intrinsic size, so using the
+ * 1920px compacted would cost the LCP element a ~2MP decode; -first keeps
+ * that at ~0.6MP and needs no server-side optimizer hop.
  *
  * Returns the input unchanged when it is not a compacted raster twin (e.g.
- * an SVG poster or a data: URI).
+ * an SVG poster, a video, or a data: URI).
  */
-const LQIP_OPTIMIZED_W = 1080;
-const LQIP_OPTIMIZED_Q = 65;
-
-export function lqipOptimizedUrl(compactedUrl: string): string {
+export function firstFrameUrl(compactedUrl: string): string {
   if (!compactedUrl.includes("-compacted.")) return compactedUrl;
-  return `/_next/image?url=${encodeURIComponent(compactedUrl)}&w=${LQIP_OPTIMIZED_W}&q=${LQIP_OPTIMIZED_Q}`;
+  return compactedUrl.replace("-compacted.avif", "-first.avif");
 }

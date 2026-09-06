@@ -9,7 +9,7 @@ import { useTheme } from "@/components/theme-provider";
 
 import { useProgressiveImage } from "./progressive-image";
 
-import { lqipOptimizedUrl } from "@/lib/media-compacted";
+import { firstFrameUrl } from "@/lib/media-compacted";
 
 type TechBackgroundProps = {
   mediaType: "image" | "video";
@@ -124,7 +124,7 @@ function ProgressiveBackground({
           are absolutely inset-0 so the swap never affects layout). */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ ...style, backgroundImage: `url("${escapeUrl(lqipOptimizedUrl(lowUrl))}")` }}
+        style={{ ...style, backgroundImage: `url("${escapeUrl(firstFrameUrl(lowUrl))}")` }}
       />
       {high !== low && (
         <div
@@ -239,7 +239,7 @@ export function TechBackground({
   // measuring Image() decodes ~0.6MP instead of the CDN's 1920×1080 on the
   // main thread. buildCropStyle is ratio-based, so the smaller probe
   // dimensions still yield the identical background-size/position px.
-  const sizeProbeUrl = lqipOptimizedUrl(inlineDarkFirst ?? darkStack[0] ?? lightStack[0] ?? mediaUrl ?? null);
+  const sizeProbeUrl = firstFrameUrl(inlineDarkFirst ?? darkStack[0] ?? lightStack[0] ?? mediaUrl ?? null);
   useEffect(() => {
     if (!sizeProbeUrl) return;
     const img = new Image();

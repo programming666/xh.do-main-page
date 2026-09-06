@@ -10,7 +10,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TopNavLink } from "@/components/top-nav-link";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { getSiteSettings } from "@/lib/site-data";
-import { getCompactedUrl, lqipOptimizedUrl } from "@/lib/media-compacted";
+import { getCompactedUrl, firstFrameUrl } from "@/lib/media-compacted";
 import { HERO_INLINE_AVIF } from "@/lib/generated-hero-inline";
 
 import "../globals.css";
@@ -162,7 +162,7 @@ export default async function LocaleLayout({
             (HERO_INLINE_AVIF), there is nothing to preload — the image is
             already inside the HTML.
           */
-          <link rel="preload" as="image" href={lqipOptimizedUrl(getCompactedUrl(site.heroMediaUrl) ?? site.heroMediaUrl)} fetchPriority="high" />
+          <link rel="preload" as="image" href={firstFrameUrl(getCompactedUrl(site.heroMediaUrl) ?? site.heroMediaUrl)} fetchPriority="high" />
         ) : null}
       </head>
       <body className="min-h-full bg-background text-foreground antialiased">
