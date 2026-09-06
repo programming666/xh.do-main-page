@@ -234,8 +234,12 @@ export function TechBackground({
     return () => observer.disconnect();
   }, []);
 
-  // Load the first media item's intrinsic size (compacted + HD share it).
-  const sizeProbeUrl = inlineDarkFirst ?? darkStack[0] ?? lightStack[0] ?? mediaUrl ?? null;
+  // Load the first media item's intrinsic size (compacted + HD share it). The
+  // probe goes through the optimizer at 1080w like the painted layer, so the
+  // measuring Image() decodes ~0.6MP instead of the CDN's 1920×1080 on the
+  // main thread. buildCropStyle is ratio-based, so the smaller probe
+  // dimensions still yield the identical background-size/position px.
+  const sizeProbeUrl = lqipOptimizedUrl(inlineDarkFirst ?? darkStack[0] ?? lightStack[0] ?? mediaUrl ?? null);
   useEffect(() => {
     if (!sizeProbeUrl) return;
     const img = new Image();
