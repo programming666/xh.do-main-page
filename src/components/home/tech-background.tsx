@@ -8,6 +8,9 @@ import { buildCropStyle, type HeroBackgroundRect } from "@/lib/hero-crop";
 import { useTheme } from "@/components/theme-provider";
 
 import { useProgressiveImage } from "./progressive-image";
+
+import { lqipOptimizedUrl } from "@/lib/media-compacted";
+
 type TechBackgroundProps = {
   mediaType: "image" | "video";
   mediaUrl?: string | null;
@@ -121,7 +124,7 @@ function ProgressiveBackground({
           are absolutely inset-0 so the swap never affects layout). */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ ...style, backgroundImage: `url("${escapeUrl(lowUrl)}")` }}
+        style={{ ...style, backgroundImage: `url("${escapeUrl(lqipOptimizedUrl(lowUrl))}")` }}
       />
       {high !== low && (
         <div

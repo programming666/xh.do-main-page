@@ -53,3 +53,23 @@ export function resolveProgressivePair(
   if (!compacted) return { low: url, high: url };
   return { low: compacted, high: url };
 }
+
+/**
+ * Next.js image-optimizer URL for a compacted first-paint asset, downscaled
+ * so the browser decodes ≈0.6MP (1080w) instead of the full payload the CDN
+ * emits (1920×1080 at the moment) — a CSS background always decodes the
+ * intrinsic size, which is the main CPU tail of the LCP element on
+ * low-end phones. Deterministic (same src+w+q ⇒ same cached optimizer
+ * output), so the SSR preload link and the rendered background attach to
+ * the identical resource.
+ *
+ * Returns the input unchanged when it is not a compacted raster twin (e.g.
+ * an SVG poster or a data: URI).
+ */
+const LQIP_OPTIMIZED_W = 1080;
+const LQIP_OPTIMIZED_Q = 65;
+
+export function lqipOptimizedUrl(compactedUrl: string): string {
+  if (!compactedUrl.includes("-compacted.")) return compactedUrl;
+  return `/_next/image?url=${encodeURIComponent(compactedUrl)}&w=${LQIP_OPTIMIZED_W}&q=${LQIP_OPTIMIZED_Q}`;
+}
