@@ -38,7 +38,6 @@ DEPLOY_STEPS = [
         "cmd": "su - xhdo -c \"cd /opt/xhdo/app && npx prisma migrate deploy 2>&1 | tail -10\"",
     },
     {
-    {
         "label": "npm run build",
         "cmd": "su - xhdo -c \"cd /opt/xhdo/app && npm run build 2>&1 | tail -20\"",
         "timeout": 240,
