@@ -150,34 +150,37 @@ export function resizeHeroBackgroundRect(
   return { x, y, w, h };
 }
 
-
 /**
- * Compute the `background-size` / `background-position` pair that shows
- * exactly the rect region of the source image inside a container of
- * cw×ch CSS pixels, without distortion and with `cover` semantics (the rect
- * always fills the container; if the rect's aspect ratio differs from the
- * container's, the longer axis clips — same trade-off as `background-size:
- * cover`). The rect's center is anchored to the container center.
+ * Normalized crop → the four CSS custom properties that `.hero-crop-layer`
+ * (globals.css) turns into the layer's box + `background-position` with
+ * container-query units.
+ *
+ * It expresses the same "the rect covers the container" mapping the old
+ * px-based `buildCropStyle()` did, but in a form the browser can resolve at
+ * first paint — it needs neither the container's pixel size (measured at
+ * runtime) nor the image's intrinsic size (probed over the network):
+ *
+ *   layer box  = hero box / rect size              → 100cqw/w × 100cqh/h
+ *   layer left = heroW/2 − layerW × (x + w/2)
+ *   background-position = ((x + w/2), (y + h/2)) in %
+ *
+ * `background-size: cover` inside that (larger) box scales the image by
+ * exactly max(heroW/rectW, heroH/rectH) — the same single, distortion-free
+ * scale factor as before — and `background-position` anchors the rect's own
+ * centre, which the layer offset then lands on the hero's centre.
+ *
+ * Consequence: the server-rendered HTML already carries the final crop, so
+ * the hero no longer jumps from "cover" to "crop" a few frames after mount
+ * (on first load *and* on every locale switch, which remounts it).
  */
-export function buildCropStyle(
-  rect: HeroBackgroundRect,
-  imgWidth: number,
-  imgHeight: number,
-  containerWidth: number,
-  containerHeight: number,
-): CSSProperties {
-  const rectW = Math.max(rect.w, 0.001) * imgWidth;
-  const rectH = Math.max(rect.h, 0.001) * imgHeight;
-  const scale = Math.max(containerWidth / rectW, containerHeight / rectH);
-  const displayWidth = imgWidth * scale;
-  const displayHeight = imgHeight * scale;
-  // Rect center in source-image pixels, then mapped into the container.
-  const centerX = (rect.x + rect.w / 2) * imgWidth;
-  const centerY = (rect.y + rect.h / 2) * imgHeight;
+export function heroCropVars(rect: HeroBackgroundRect): CSSProperties {
+  // A zero-sized rect would divide by zero in the calc() chain below.
+  const w = Math.max(clamp01(rect.w), 0.001);
+  const h = Math.max(clamp01(rect.h), 0.001);
   return {
-    backgroundSize: `${displayWidth}px ${displayHeight}px`,
-    backgroundPosition: `${containerWidth / 2 - centerX * scale}px ${
-      containerHeight / 2 - centerY * scale
-    }px`,
-  };
+    "--hero-crop-x": `${clamp01(rect.x)}`,
+    "--hero-crop-y": `${clamp01(rect.y)}`,
+    "--hero-crop-w": `${w}`,
+    "--hero-crop-h": `${h}`,
+  } as CSSProperties;
 }

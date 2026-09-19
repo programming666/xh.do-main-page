@@ -22,6 +22,13 @@ type UseProgressiveImageOptions = {
    * can point at any wrapper that reflects the media's on-screen position.
    */
   el?: RefObject<HTMLElement | null>;
+  /**
+   * When false the full-resolution source is never fetched: the hook keeps
+   * returning the compacted `low` URL. Hero callers pass their `hdEnabled`
+   * flag here so the bytes aren't downloaded for an HD layer that is not
+   * going to be mounted (see tech-background.tsx). Defaults to true.
+   */
+  enabled?: boolean;
 };
 
 // requestIdleCallback is not in every TS lib baseline; window typing in
@@ -58,6 +65,7 @@ export function useProgressiveImage(
 } {
   const defer = options?.defer ?? "idle";
   const el = options?.el;
+  const enabled = options?.enabled ?? true;
 
   const [state, setState] = useState(() => {
     const { low, high } = resolveProgressivePair(url);
@@ -69,7 +77,9 @@ export function useProgressiveImage(
     const { low, high } = resolveProgressivePair(url);
     const lowUrl = low ?? url;
     const highUrl = high ?? lowUrl;
-    if (!high || high === low) {
+    // Not painting the HD layer: keep the bytes off the network entirely
+    // instead of warming an image that never gets attached.
+    if (!high || high === low || !enabled) {
       return;
     }
 
@@ -107,7 +117,7 @@ export function useProgressiveImage(
       cancelled = true;
       stopEarly?.();
     };
-  }, [url, defer, el]);
+  }, [url, defer, el, enabled]);
 
   return state;
 }

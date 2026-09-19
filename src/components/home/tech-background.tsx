@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { CSSProperties } from "react";
 
-import { buildCropStyle, type HeroBackgroundRect } from "@/lib/hero-crop";
+import { heroCropVars, resolveHeroBackgroundRect, type HeroBackgroundRect } from "@/lib/hero-crop";
 
 import { useTheme } from "@/components/theme-provider";
 
@@ -27,7 +27,8 @@ type TechBackgroundProps = {
   gradientEnd?: string | null;
   gradientAngle?: number;
   // CSS background-position controlling which part of a cover-cropped hero
-  // image is visible (e.g. "center", "left top", "right bottom").
+  // image is visible (e.g. "center", "left top", "right bottom"). Ignored for
+  // slides that have a crop rect.
   backgroundPosition?: string;
   // Normalized crop rect {x,y,w,h} (0..1 each) — when present it overrides
   // `backgroundPosition` and zoom-crops the image to exactly that region.
@@ -44,6 +45,29 @@ type TechBackgroundProps = {
 // Cross-fade duration when the user toggles light/dark. Slow enough to feel
 // intentional, fast enough to not block reading.
 const THEME_CROSSFADE_MS = 700;
+
+// Hero root carries this so the crop layers can size themselves with
+// container-query units (see the `.hero-crop-layer` rules in globals.css).
+// `overflow-clip` (not `hidden`) is deliberate: a crop layer is many times the
+// panel's size, and `overflow: hidden` would make this element a scroll
+// container whose scrollable overflow can be shifted by keyboard/programmatic
+// scrolling — which would displace the whole crop.
+const HERO_CONTAINER_CLASS = "hero-cq";
+// A slide layer whose URL has a crop rect carries this class plus the
+// normalized --hero-crop-* variables.
+const HERO_CROP_LAYER_CLASS = "hero-crop-layer";
+
+// The layer the browser paints first is the CDN's thin 1024-edge `-first.avif`
+// (see lib/media-compacted). Once `cover` stretches that layer wider than its
+// own pixel width — counted in *device* pixels — it is being upscaled, and the
+// full-resolution source is worth its bytes. The previous gate (hero box
+// >= 1280 CSS px) required a ~1780px window, so every laptop, tablet, phone
+// and non-maximised window was left on the blurry first frame forever.
+const LOW_LAYER_EDGE_PX = 1024;
+// Only used to estimate how wide `cover` draws the source inside the hero box
+// (a short, wide panel scales a landscape photo by its height). Hero media is
+// landscape photography, so 16:9 is a safe approximation.
+const ASSUMED_SOURCE_ASPECT = 16 / 9;
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(0.95, value));
@@ -79,44 +103,54 @@ function pickStack(
   return fallbackUrl ? [fallbackUrl] : [];
 }
 
+// One slide layer: `style` (transform + either the normalized crop variables
+// or a plain background-position) plus the class that consumes them.
+interface HeroLayer {
+  style: CSSProperties;
+  className: string;
+}
+
 interface SlideStackProps {
   slides: string[];
   activeIndex: number;
   active: boolean;
-  styleFor: (url: string) => CSSProperties;
+  layerFor: (url: string) => HeroLayer;
+  firstLowOverride?: string | null;
   hdEnabled?: boolean;
 }
+
 interface ProgressiveBackgroundProps {
   url: string;
   visible: boolean;
-  style: CSSProperties;
+  layer: HeroLayer;
   crossfadeMs?: number;
   // When set, paint this instead of the compacted URL (deploy-inlined
   // data: URI for the first slide — eliminates the LCP image fetch).
   lowOverride?: string | null;
-  // Mount the full-resolution fade-in layer only on wide screens. On narrow
-  // viewports the swap repaints the LCP element and re-baselines LCP to the
-  // HD fade time, stretching the metric well past the first-paint image.
+  // Mount the full-resolution fade-in layer. Skipped while the low layer is
+  // not being upscaled (narrow / low-DPI screens), so the HD bytes stay off
+  // those networks while the picture already looks right.
   enableHd?: boolean;
 }
 
 // Paints the compacted (low-byte) image immediately, then preloads the
 // full-resolution source in the background and swaps to it once the browser
-// has decoded it. The element is an absolutely-positioned inset-0 div that
-// already occupies its box, so changing backgroundImage never affects layout
-// → no CLS. The visible/opacity state drives the slide crossfade, and the
-// incoming style carries the scroll/parallax transform.
+// has decoded it. Both layers carry the same crop, so the swap only changes
+// which pixels are shown — never the geometry (no re-zoom, no CLS).
 function ProgressiveBackground({
   url,
   visible,
-  style,
+  layer,
   crossfadeMs = 1400,
   lowOverride = null,
   enableHd = true,
 }: ProgressiveBackgroundProps) {
-  const { low, high, highReady } = useProgressiveImage(url);
+  const { low, high, highReady } = useProgressiveImage(url, { enabled: enableHd });
   const lowUrl = lowOverride ?? low;
   const escapeUrl = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const layerClass = layer.className
+    ? `absolute inset-0 bg-cover bg-center bg-no-repeat ${layer.className}`
+    : "absolute inset-0 bg-cover bg-center bg-no-repeat";
   return (
     <div
       className="absolute inset-0"
@@ -127,16 +161,16 @@ function ProgressiveBackground({
     >
       {/* Compacted / low-byte image paints immediately, then the full source
           fades in over it once the browser has decoded it (no CLS — both layers
-          are absolutely inset-0 so the swap never affects layout). */}
+          use the identical layer box). */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ ...style, backgroundImage: `url("${escapeUrl(firstFrameUrl(lowUrl))}")` }}
+        className={layerClass}
+        style={{ ...layer.style, backgroundImage: `url("${escapeUrl(firstFrameUrl(lowUrl))}")` }}
       />
       {enableHd && high !== low && (
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className={layerClass}
           style={{
-            ...style,
+            ...layer.style,
             // Only attach the HD url once the compacted layer has painted and
             // the browser went idle — attaching it at mount made the 200KB+
             // webp compete with the LCP-critical compacted fetch.
@@ -151,7 +185,7 @@ function ProgressiveBackground({
 }
 
 
-function SlideStack({ slides, activeIndex, active, styleFor, firstLowOverride, hdEnabled = true }: SlideStackProps & { firstLowOverride?: string | null }) {
+function SlideStack({ slides, activeIndex, active, layerFor, firstLowOverride, hdEnabled = true }: SlideStackProps) {
   const visibleIndex = slides.length ? activeIndex % slides.length : 0;
   return (
     <div
@@ -167,7 +201,7 @@ function SlideStack({ slides, activeIndex, active, styleFor, firstLowOverride, h
           url={item}
           lowOverride={index === 0 ? firstLowOverride : null}
           visible={index === visibleIndex}
-          style={styleFor(item)}
+          layer={layerFor(item)}
           enableHd={hdEnabled}
         />
       ))}
@@ -198,16 +232,12 @@ export function TechBackground({
   const { resolvedTheme } = useTheme();
   const [offset, setOffset] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  // Container box measured at runtime — required to translate the normalized
-  // crop rect into pixel background-size/position (the container is fluid, so
-  // this can't be precomputed at SSR time).
   const boxRef = useRef<HTMLDivElement>(null);
+  // Hero box + device pixel ratio. Used *only* to decide whether mounting the
+  // full-resolution layer is worth it — the crop itself is resolved by CSS, so
+  // nothing here can move the picture after the first paint.
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  // Source image dimensions, loaded from the first media item (the compacted
-  // avif and the HD source share the same intrinsic size).
-  const [imageSize, setImageSize] = useState<{ w: number; h: number } | null>(
-    null,
-  );
+  const [pixelRatio, setPixelRatio] = useState(1);
 
   // Pre-compute both theme stacks so the inactive one stays mounted under the
   // active one. Toggling theme then becomes a simple opacity crossfade rather
@@ -234,29 +264,18 @@ export function TechBackground({
       if (rect.width > 0 && rect.height > 0) {
         setBox({ w: rect.width, h: rect.height });
       }
+      // Browser zoom changes devicePixelRatio without resizing the element.
+      setPixelRatio(window.devicePixelRatio || 1);
     };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Load the first media item's intrinsic size (compacted + HD share it). The
-  // probe goes through the optimizer at 1080w like the painted layer, so the
-  // measuring Image() decodes ~0.6MP instead of the CDN's 1920×1080 on the
-  // main thread. buildCropStyle is ratio-based, so the smaller probe
-  // dimensions still yield the identical background-size/position px.
-  const sizeProbeUrl = firstFrameUrl(inlineDarkFirst ?? darkStack[0] ?? lightStack[0] ?? mediaUrl ?? null);
-  useEffect(() => {
-    if (!sizeProbeUrl) return;
-    const img = new Image();
-    img.onload = () =>
-      setImageSize({ w: img.naturalWidth || 0, h: img.naturalHeight || 0 });
-    img.src = sizeProbeUrl;
+    window.addEventListener("resize", update);
     return () => {
-      img.onload = null;
+      observer.disconnect();
+      window.removeEventListener("resize", update);
     };
-  }, [sizeProbeUrl]);
+  }, []);
 
   const transformStyle = useMemo(() => {
     const translateY =
@@ -266,25 +285,54 @@ export function TechBackground({
     } satisfies CSSProperties;
   }, [effect, offset]);
 
-  // Translate the normalized crop rect into pixel background-size/position
-  // once both the image size and the container box are known.
-  // Per-slide style: resolve the crop for the slide's own URL (per-image map
-  // first, legacy single rect second), then translate it into pixel
-  // background-size/position once the image size and container box are known.
-  const styleFor = useCallback(
-    (url: string): CSSProperties => {
-      const rect = backgroundRects?.[url] ?? backgroundRect ?? null;
-      const crop =
-        rect && imageSize && box && imageSize.w > 0 && imageSize.h > 0
-          ? buildCropStyle(rect, imageSize.w, imageSize.h, box.w, box.h)
-          : null;
-      return {
-        ...transformStyle,
-        ...(crop ?? { backgroundPosition }),
-      };
+  // Per-slide layer. A crop rect becomes four normalized CSS variables that
+  // `.hero-crop-layer` (globals.css) turns into the layer's box and
+  // background-position with container-query units — the same "cover the panel
+  // with the rect" mapping the old px-based buildCropStyle() produced from a
+  // measured container and a probed image size, but resolved by CSS at first
+  // paint. That means the server-rendered frame already shows the final crop:
+  // no cover → crop snap on mount, on a locale switch (which remounts this
+  // component), or once a probe lands. Without a rect we keep the plain
+  // cover + `backgroundPosition` pair.
+  const layerFor = useCallback(
+    (url: string): HeroLayer => {
+      const rect = resolveHeroBackgroundRect(backgroundRects, url, backgroundRect);
+      return rect
+        ? {
+            style: { ...transformStyle, ...heroCropVars(rect) },
+            className: HERO_CROP_LAYER_CLASS,
+          }
+        : { style: { ...transformStyle, backgroundPosition }, className: "" };
     },
-    [backgroundRects, backgroundRect, imageSize, box, transformStyle, backgroundPosition],
+    [backgroundRects, backgroundRect, transformStyle, backgroundPosition],
   );
+
+  // The strongest crop in play. A rect makes `cover` inside the enlarged layer
+  // draw the first frame `box.w / rect.w` wide — wider than the panel itself —
+  // so comparing the panel box alone would keep the gate off on windows where
+  // the frame is already upscaled. 0.05 mirrors the smallest rect the admin
+  // crop picker can produce; taking the min over both stacks covers whichever
+  // slide is worst. Without rects this reduces to `max(box.w, box.h*16/9)`.
+  const { minCropW, minCropH } = useMemo(() => {
+    const rects = [backgroundRect, ...Object.values(backgroundRects ?? {})].filter(
+      (rect): rect is HeroBackgroundRect => rect != null,
+    );
+    let minW = 1;
+    let minH = 1;
+    for (const rect of rects) {
+      minW = Math.min(minW, Math.max(rect.w, 0.05));
+      minH = Math.min(minH, Math.max(rect.h, 0.05));
+    }
+    return { minCropW: minW, minCropH: minH };
+  }, [backgroundRect, backgroundRects]);
+
+  // How wide the first-paint layer ends up on this screen, in device pixels.
+  // The 1.08 overscan transform is left out, so this errs slightly towards
+  // keeping HD off.
+  const lowLayerDeviceWidth = box
+    ? Math.max(box.w / minCropW, (box.h / minCropH) * ASSUMED_SOURCE_ASPECT) * pixelRatio
+    : 0;
+  const hdEnabled = box !== null && lowLayerDeviceWidth > LOW_LAYER_EDGE_PX;
   useEffect(() => {
     if (effect === "none") {
       return;
@@ -344,7 +392,7 @@ export function TechBackground({
   return (
     <div
       ref={boxRef}
-      className="absolute inset-0 overflow-hidden rounded-[2rem] border border-white/10"
+      className={`absolute inset-0 overflow-clip rounded-[2rem] border border-white/10 ${HERO_CONTAINER_CLASS}`}
     >
       <div
         className="absolute inset-0 transition-[background] duration-[700ms] ease-out"
@@ -374,16 +422,16 @@ export function TechBackground({
               slides={darkStack}
               activeIndex={activeIndex}
               active={!isLight}
-              styleFor={styleFor}
+              layerFor={layerFor}
               firstLowOverride={inlineDarkFirst}
-              hdEnabled={box !== null && box.w >= 1280}
+              hdEnabled={hdEnabled}
             />
             <SlideStack
               slides={lightStack}
               activeIndex={activeIndex}
               active={isLight}
-              styleFor={styleFor}
-              hdEnabled={box !== null && box.w >= 1280}
+              layerFor={layerFor}
+              hdEnabled={hdEnabled}
             />
           </>
         )

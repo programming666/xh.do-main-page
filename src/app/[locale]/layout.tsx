@@ -132,6 +132,12 @@ export default async function LocaleLayout({
     getTranslations({ locale, namespace: "noscript" }),
   ]);
 
+  // The hero slide painted on the first render: TechBackground shows the dark
+  // stack while the theme is unresolved, so that is the image the browser
+  // should start fetching (mirrors its pickStack fallback chain).
+  const heroFirstPaint =
+    site.heroDarkItems[0] ?? site.heroMediaItems[0] ?? site.heroMediaUrl;
+
   return (
     <html
       lang={locale}
@@ -152,17 +158,28 @@ export default async function LocaleLayout({
           }}
         />
         {/* This is supposed to be in the head. ES module boundary. */}
-        {site.heroMediaUrl && !HERO_INLINE_AVIF ? (
+        {heroFirstPaint && !HERO_INLINE_AVIF ? (
           /*
-            Preload the compacted (low-byte) twin instead of the HD source:
-            it is the layer actually painted first, it is ~half the bytes,
-            and the HD webp still fades in afterwards via the progressive
-            hook. Cuts the hero's early-window bandwidth roughly in half.
-            When the deploy pipeline inlines the first slide as a data: URI
-            (HERO_INLINE_AVIF), there is nothing to preload — the image is
-            already inside the HTML.
+            Preload the twin of the image that is actually painted first — the
+            dark stack's first slide (that is the layer visible on the initial
+            render, see TechBackground's pickStack), falling back to the
+            generic media URL. The old version always preloaded
+            `heroMediaUrl`, which is a different (often unused) image once the
+            admin configures light/dark stacks, so the high-priority fetch was
+            spent on bytes nobody rendered.
+
+            Prefer the thin `-first.avif` twin: it is the layer painted first,
+            it is a fraction of the HD bytes, and the HD source still fades in
+            afterwards via the progressive hook. When the deploy pipeline
+            inlines that slide as a data: URI (HERO_INLINE_AVIF), there is
+            nothing to preload — the image is already inside the HTML.
           */
-          <link rel="preload" as="image" href={firstFrameUrl(getCompactedUrl(site.heroMediaUrl) ?? site.heroMediaUrl)} fetchPriority="high" />
+          <link
+            rel="preload"
+            as="image"
+            href={firstFrameUrl(getCompactedUrl(heroFirstPaint) ?? heroFirstPaint)}
+            fetchPriority="high"
+          />
         ) : null}
       </head>
       <body className="min-h-full bg-background text-foreground antialiased">

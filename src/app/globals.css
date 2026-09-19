@@ -191,3 +191,55 @@ option {
 .px-fade-in {
   animation: px-fade-in 500ms ease-out both;
 }
+
+/* Hero crop layers.
+
+   The admin picks a normalized rect of the source image (0..1 each) and the
+   hero must show exactly that region, filling the panel without distortion.
+   That is the mapping the px-based `buildCropStyle()` used to compute at
+   runtime from a measured container plus a probed image size. Expressing it
+   with container-query units instead moves the whole calculation into CSS, so
+   the server-rendered HTML already carries the final crop: no "cover → crop"
+   snap on mount, after a locale switch (which remounts the hero), or when an
+   image probe finally lands.
+
+   .hero-cq          on the hero root — makes it a size container for cqw/cqh.
+   .hero-crop-layer  on a slide whose URL has a crop rect. It carries
+                     --hero-crop-x/y/w/h (normalized, inline). The layer box is
+                     the rect scaled up to the hero box, so `background-size:
+                     cover` inside it scales the image by exactly
+                     max(heroW/rectW, heroH/rectH) — the same single,
+                     distortion-free scale factor as before — while
+                     background-position anchors the rect's own centre, which
+                     the layer offset then lands on the hero's centre.
+                     transform-origin is pinned to the rect centre so the
+                     layout transform (the scale(1.08) overscan used by the
+                     parallax / scroll-pan effects) grows around the same point
+                     the old hero-sized layers used.
+
+   Browsers without container-query unit support (pre-2023) fall back to the
+   plain Tailwind `bg-cover bg-center` layer. */
+.hero-cq {
+  container-type: size;
+}
+
+@supports (width: 100cqw) {
+  .hero-crop-layer {
+    inset: auto;
+    width: calc(100cqw / var(--hero-crop-w));
+    height: calc(100cqh / var(--hero-crop-h));
+    left: calc(
+      (0.5 - (var(--hero-crop-x) + var(--hero-crop-w) / 2) / var(--hero-crop-w)) * 100cqw
+    );
+    top: calc(
+      (0.5 - (var(--hero-crop-y) + var(--hero-crop-h) / 2) / var(--hero-crop-h)) * 100cqh
+    );
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: calc((var(--hero-crop-x) + var(--hero-crop-w) / 2) * 100%)
+      calc((var(--hero-crop-y) + var(--hero-crop-h) / 2) * 100%);
+    transform-origin:
+      calc((var(--hero-crop-x) + var(--hero-crop-w) / 2) * 100cqw / var(--hero-crop-w))
+      calc((var(--hero-crop-y) + var(--hero-crop-h) / 2) * 100cqh / var(--hero-crop-h));
+  }
+}
