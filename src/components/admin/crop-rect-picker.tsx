@@ -145,7 +145,7 @@ export function CropRectPicker({
         // Container is exactly the size of the rendered image (img is
         // w-full h-auto, no fixed height / no scrolling) so the normalized
         // rect maps 1:1 onto percentage coordinates.
-        className="relative w-full select-none overflow-hidden rounded-xl border border-[color:var(--border)] bg-slate-950/40"
+        className="relative w-full select-none overflow-hidden rounded-xl border border-[color:var(--a-line)] bg-slate-950/40"
         style={{ touchAction: "none" }}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -163,16 +163,12 @@ export function CropRectPicker({
             className="pointer-events-none block h-auto w-full"
           />
         ) : (
-          <div className="flex h-40 items-center justify-center text-sm text-[color:var(--muted)]">
+          <div className="flex h-40 items-center justify-center text-sm text-[color:var(--a-muted)]">
             {t("heroBackgroundRectNoImage")}
           </div>
         )}
         <div
-          className={`absolute cursor-move border-2 ${
-            isCustom
-              ? "border-cyan-400/90 bg-cyan-400/10"
-              : "border-dashed border-cyan-300/70 bg-cyan-300/5"
-          }`}
+          className={`absolute cursor-move border-2 admin-crop-frame${isCustom ? "" : " border-dashed"}`}
           style={{
             left: `${rect.x * 100}%`,
             top: `${rect.y * 100}%`,
@@ -181,34 +177,34 @@ export function CropRectPicker({
           }}
           onPointerDown={(event) => onPointerDown(event, "move")}
         >
-          <span className="pointer-events-none absolute left-1 top-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-100/80">
+          <span className="pointer-events-none absolute left-1 top-1 text-[10px] font-semibold uppercase tracking-wider admin-crop-hint">
             {isCustom ? t("heroBackgroundRectCrop") : t("heroBackgroundRectFull")}
           </span>
           {/* Corner resize handles: SE / NE / NW / SW */}
           <div
-            className="absolute -bottom-1.5 -right-1.5 h-4 w-4 cursor-nwse-resize rounded-[4px] border border-cyan-200 bg-cyan-400 shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            className="admin-crop-handle absolute -bottom-1.5 -right-1.5 h-4 w-4 cursor-nwse-resize rounded-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
             onPointerDown={(event) => onPointerDown(event, "se")}
           />
           <div
-            className="absolute -right-1.5 -top-1.5 h-4 w-4 cursor-nesw-resize rounded-[4px] border border-cyan-200 bg-cyan-400 shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            className="admin-crop-handle absolute -right-1.5 -top-1.5 h-4 w-4 cursor-nesw-resize rounded-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
             onPointerDown={(event) => onPointerDown(event, "ne")}
           />
           <div
-            className="absolute -left-1.5 -top-1.5 h-4 w-4 cursor-nwse-resize rounded-[4px] border border-cyan-200 bg-cyan-400 shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            className="admin-crop-handle absolute -left-1.5 -top-1.5 h-4 w-4 cursor-nwse-resize rounded-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
             onPointerDown={(event) => onPointerDown(event, "nw")}
           />
           <div
-            className="absolute -bottom-1.5 -left-1.5 h-4 w-4 cursor-nesw-resize rounded-[4px] border border-cyan-200 bg-cyan-400 shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            className="admin-crop-handle absolute -bottom-1.5 -left-1.5 h-4 w-4 cursor-nesw-resize rounded-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
             onPointerDown={(event) => onPointerDown(event, "sw")}
           />
         </div>
       </div>
-      <div className="flex items-center justify-between gap-3 text-xs text-[color:var(--muted)]">
+      <div className="flex items-center justify-between gap-3 text-xs text-[color:var(--a-muted)]">
         <span>{t("heroBackgroundRectHint")}</span>
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="shrink-0 rounded-lg border border-[color:var(--border)] px-2.5 py-1.5 text-xs font-medium transition-colors hover:border-cyan-300/60 hover:text-cyan-300"
+          className="admin-btn"
         >
           {t("heroBackgroundRectReset")}
         </button>

@@ -1,4 +1,3 @@
-import { AdminShell } from "@/components/admin/admin-shell";
 import { SiteSettingsForm } from "@/components/admin/site-settings-form";
 import { requireAdminPageWith2FA } from "@/lib/admin-page";
 import { ensureSiteSettings } from "@/lib/site-data";
@@ -15,8 +14,7 @@ export default async function SiteSettingsPage({
   const en = site.translations.find((item) => item.locale === "en");
 
   return (
-    <AdminShell locale={locale}>
-      <SiteSettingsForm
+    <SiteSettingsForm
         initialData={{
           siteName: site.siteName,
           githubUrl: site.githubUrl ?? "",
@@ -64,6 +62,5 @@ export default async function SiteSettingsPage({
           },
         }}
       />
-    </AdminShell>
   );
 }

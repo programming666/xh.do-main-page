@@ -4,6 +4,11 @@ import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
+/**
+ * Hidden <input type="file"> behind a design-system button. It reports the
+ * chosen file name next to the button so the admin can see that the picker
+ * actually registered a selection before the upload resolves.
+ */
 export function FilePicker({
   accept,
   onSelect,
@@ -16,16 +21,12 @@ export function FilePicker({
   const [fileName, setFileName] = useState<string>(t("noFileSelected"));
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-black/10 px-3 py-3 text-sm text-foreground">
-      <button
-        type="button"
-        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2"
-        onClick={() => inputRef.current?.click()}
-      >
-        <Upload className="h-4 w-4" />
+    <div className="admin-filepicker">
+      <button type="button" className="admin-btn" data-size="sm" onClick={() => inputRef.current?.click()}>
+        <Upload className="h-3.5 w-3.5" />
         {t("chooseFileLabel")}
       </button>
-      <span className="truncate text-[color:var(--muted)]">{fileName}</span>
+      <span className="admin-filepicker-name">{fileName}</span>
       <input
         ref={inputRef}
         type="file"

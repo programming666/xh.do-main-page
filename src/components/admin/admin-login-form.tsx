@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AlertCircle, LogIn } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { authClient } from "@/lib/auth-client";
@@ -17,7 +18,7 @@ export function AdminLoginForm({ locale }: { locale: string }) {
       method="post"
       noValidate
       aria-describedby={error ? "login-error" : undefined}
-      className="glass-panel space-y-4 rounded-3xl p-8"
+      className="admin-form"
       onSubmit={async (event) => {
         event.preventDefault();
         setLoading(true);
@@ -30,55 +31,59 @@ export function AdminLoginForm({ locale }: { locale: string }) {
         });
         setLoading(false);
         if (result.error) {
-          setError(result.error.message ?? "登录失败，请检查账号或密码。");
+          setError(result.error.message ?? t("loginFailed"));
         }
       }}
     >
-      <header>
-        <h1 className="text-2xl font-semibold">{t("loginTitle")}</h1>
-        <p className="mt-2 text-sm text-[color:var(--muted)]">{t("loginHint")}</p>
+      <header className="admin-auth-head">
+        <h1>{t("loginTitle")}</h1>
+        <p>{t("loginHint")}</p>
       </header>
-      <label className="block space-y-2">
-        <span className="text-sm">{t("email")}</span>
+      <label className="admin-field">
+        <span className="admin-label">{t("email")}</span>
         <input
           type="email"
           autoComplete="username"
           inputMode="email"
           required
           aria-invalid={error ? "true" : undefined}
-          aria-label={t("email")}
-          placeholder={t("email")}
-          className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 outline-none"
+          className="admin-input"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(event) => setEmail(event.target.value)}
         />
       </label>
-      <label className="block space-y-2">
-        <span className="text-sm">{t("password")}</span>
+      <label className="admin-field">
+        <span className="admin-label">{t("password")}</span>
         <input
           type="password"
           autoComplete="current-password"
           required
           aria-invalid={error ? "true" : undefined}
-          aria-label={t("password")}
-          placeholder={t("password")}
-          className="w-full rounded-2xl border border-white/10 bg-black/10 px-4 py-3 outline-none"
+          className="admin-input"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(event) => setPassword(event.target.value)}
         />
       </label>
       {error ? (
-        <p id="login-error" role="alert" className="text-sm text-rose-300">
+        <p id="login-error" role="alert" className="admin-alert" data-variant="error">
+          <AlertCircle className="h-4 w-4" />
           {error}
         </p>
       ) : null}
       <button
-        className="w-full rounded-2xl bg-cyan-400 px-4 py-3 font-medium text-slate-950 disabled:opacity-60"
+        className="admin-btn admin-btn-block"
+        data-variant="primary"
+        data-size="lg"
         type="submit"
         disabled={loading}
         aria-busy={loading}
       >
-        {loading ? "..." : t("loginTitle")}
+        {loading ? t("working") : (
+          <>
+            <LogIn className="h-4 w-4" />
+            {t("loginTitle")}
+          </>
+        )}
       </button>
     </form>
   );

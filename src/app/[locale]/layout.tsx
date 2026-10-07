@@ -14,7 +14,7 @@ import { parseHeroBackgroundRect, parseHeroBackgroundRects } from "@/lib/hero-cr
 
 import "../globals.css";
 import "../editorial.css";
-import "../appearance-admin.css";
+import "../admin.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

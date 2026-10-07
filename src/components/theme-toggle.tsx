@@ -23,7 +23,7 @@ function nextPreference(current: ThemePreference): ThemePreference {
   return CYCLE[(index + 1) % CYCLE.length];
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ variant = "default" }: { variant?: "default" | "admin" } = {}) {
   const { theme, setTheme } = useTheme();
   const t = useTranslations("admin");
 
@@ -38,7 +38,12 @@ export function ThemeToggle() {
       aria-label={`${t("themeToggleAria")} · ${t(themeLabelKey(theme))}`}
       title={t(themeLabelKey(theme))}
       onClick={() => setTheme(nextPreference(theme))}
-      className="glass-panel inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-transform duration-200 ease-out hover:scale-105"
+      className={
+        variant === "admin"
+          ? "admin-btn"
+          : "glass-panel inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-transform duration-200 ease-out hover:scale-105"
+      }
+      {...(variant === "admin" ? { "data-variant": "ghost", "data-icon": "true" } : {})}
     >
       <CurrentIcon className="h-4 w-4" />
     </button>

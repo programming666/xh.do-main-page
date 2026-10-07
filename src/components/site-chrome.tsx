@@ -25,8 +25,10 @@ export function SiteChrome({ children, appearance, heroMedia, siteName, logoUrl,
   const t = useTranslations("hero");
   const { resolvedTheme } = useTheme();
   const [palette, setPalette] = useState<MediaPalette | null>(null);
+  // Admin surfaces bring their own chrome (AdminShell, or the auth shell on
+  // /admin/login and /admin/2fa): no editorial wrapper, no hero backdrop.
   if (pathname.startsWith("/admin")) {
-    return <><div className="admin-utilities"><Link href="/">{t("backHome")}</Link><LocaleSwitcher /><ThemeToggle /></div>{children}</>;
+    return <>{children}</>;
   }
   const useHero = appearance.backgroundSource === "hero" && appearance.mediaVisible;
   const adaptive = useHero && appearance.autoColors && palette?.theme === resolvedTheme ? palette : null;

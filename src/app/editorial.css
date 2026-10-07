@@ -88,7 +88,6 @@
 .editorial-friend p { font-size: 11px; color: var(--ed-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .friend-monogram { font: 34px Georgia, serif; color: var(--ed-accent); width: 52px; text-align: center; }
 .friend-arrow { color: var(--ed-accent); font-size: 23px; }
-.admin-utilities { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 12px 24px; background: var(--background); position: relative; z-index: 41; font-size: 12px; }
 @media (max-width: 800px) {
   .editorial-nav { gap: 16px; flex-wrap: wrap; padding-block: 19px; }
   .editorial-brand { font-size: 23px; flex: 1; }

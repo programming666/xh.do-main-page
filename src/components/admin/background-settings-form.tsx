@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import { AlertCircle, CheckCircle2, Info, Save } from "lucide-react";
 
 import { FilePicker } from "@/components/admin/file-picker";
 import { CropRectPicker } from "@/components/admin/crop-rect-picker";
@@ -35,33 +36,27 @@ type BackgroundFormData = {
   heroBackgroundRects: string | null;
 };
 
-const fieldClassName =
-  "w-full rounded-2xl border border-[color:var(--border)] bg-white/80 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] transition-colors dark:bg-slate-950/35 dark:text-slate-100 dark:placeholder:text-slate-400";
-const selectClassName = `${fieldClassName} appearance-none`;
-const textareaClassName = `${fieldClassName} min-h-28 resize-y`;
-const panelClassName =
-  "glass-panel rounded-[1.75rem] border border-[color:var(--border)] p-6 shadow-[0_24px_70px_rgba(15,23,42,0.12)]";
-
-function FieldGroup({
-  label,
-  hint,
-  children,
-  className = "",
-}: {
+type FieldGroupProps = {
   label: string;
   hint?: string;
+  span?: boolean;
   children: React.ReactNode;
-  className?: string;
-}) {
+};
+
+/**
+ * Field wrapper for the hero-media form. Uses the console's .admin-field
+ * vocabulary (real <label>, hint under the label, control last) so this page
+ * matches site settings / projects / links.
+ */
+function FieldGroup({ label, hint, span, children }: FieldGroupProps) {
   return (
-    <label className={`block space-y-2 ${className}`}>
-      <span className="block text-sm font-medium text-foreground">{label}</span>
-      {hint ? <span className="block text-xs leading-5 text-[color:var(--muted)]">{hint}</span> : null}
+    <label className={`admin-field${span ? " admin-span-2" : ""}`}>
+      <span className="admin-label">{label}</span>
+      {hint ? <span className="admin-hint">{hint}</span> : null}
       {children}
     </label>
   );
 }
-
 
 // 3×3 grid of CSS background-position values — the admin picks which part of
 // a cover-cropped hero image is visible. Each cell renders a tiny square dot
@@ -72,16 +67,10 @@ const HERO_POSITIONS: string[][] = [
   ["left bottom", "center bottom", "right bottom"],
 ];
 
-function PositionPicker({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
+function PositionPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const t = useTranslations("admin");
   return (
-    <div className="grid w-fit grid-cols-3 gap-1.5">
+    <div className="admin-position-grid">
       {HERO_POSITIONS.flatMap((row, rowIndex) =>
         row.map((position) => {
           const colIndex = HERO_POSITIONS[rowIndex].indexOf(position);
@@ -95,19 +84,12 @@ function PositionPicker({
               key={position}
               type="button"
               title={position}
+              aria-pressed={isActive}
               aria-label={`${t("heroBackgroundPositionLabel")}: ${position}`}
               onClick={() => onChange(position)}
-              className={`relative h-9 w-9 rounded-lg border transition-colors ${
-                isActive
-                  ? "border-cyan-400 bg-cyan-400/15"
-                  : "border-[color:var(--border)] bg-black/5 hover:border-cyan-300/50 dark:bg-white/5"
-              }`}
+              className="admin-position-cell"
             >
-              <span
-                className={`absolute h-1.5 w-1.5 rounded-full ${dotPlacement} ${
-                  isActive ? "bg-cyan-400" : "bg-slate-400/70"
-                }`}
-              />
+              <span className={`admin-position-dot ${dotPlacement}`} />
             </button>
           );
         }),
@@ -115,7 +97,6 @@ function PositionPicker({
     </div>
   );
 }
-
 
 // One crop picker per hero image. Editing the rect writes into the shared
 // per-image map (keyed by URL); resetting deletes the entry so the image
@@ -134,7 +115,7 @@ function CropPickerForUrl({
   const t = useTranslations("admin");
   const rect = rects[url] ?? null;
   return (
-    <FieldGroup className="md:col-span-2" label={label} hint={t("heroBackgroundRectPerImageHint")}>
+    <FieldGroup span label={label} hint={t("heroBackgroundRectPerImageHint")}>
       <CropRectPicker
         value={rect}
         imageUrl={url}
@@ -149,12 +130,12 @@ function CropPickerForUrl({
   );
 }
 
-
 export function BackgroundSettingsForm({ initialData }: { initialData: BackgroundFormData }) {
   const t = useTranslations("admin");
   const [form, setForm] = useState(initialData);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Per-image crop map derived from the form's JSON field; editing any
   // picker rewrites the map and serializes it back into the form.
@@ -172,8 +153,7 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
     (value ?? "").split("\n").map((item) => item.trim()).filter(Boolean);
   const fallbackList = useMemo(() => {
     const list = splitList(form.heroMediaPlaylist);
-    if (form.heroMediaUrl && !list.includes(form.heroMediaUrl))
-      list.unshift(form.heroMediaUrl);
+    if (form.heroMediaUrl && !list.includes(form.heroMediaUrl)) list.unshift(form.heroMediaUrl);
     return list;
   }, [form.heroMediaUrl, form.heroMediaPlaylist]);
   const lightOwnList = useMemo(() => {
@@ -191,8 +171,8 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
     return list;
   }, [form.heroDarkImageUrl, form.heroDarkPlaylist]);
 
-  const shortUrl = (url: string) =>
-    url.length > 52 ? `${url.slice(0, 24)}…${url.slice(-24)}` : url;
+  const shortUrl = (url: string) => (url.length > 52 ? `${url.slice(0, 24)}…${url.slice(-24)}` : url);
+
   async function upload(kind: "backgrounds" | "logos", file?: File | null) {
     if (!file) return null;
     const body = new FormData();
@@ -200,23 +180,25 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
     body.append("file", file);
     const response = await fetch("/api/admin/upload", { method: "POST", body });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? "Upload failed");
+    if (!response.ok) throw new Error(data.error ?? t("uploadFailed"));
     return data.url as string;
   }
 
   return (
     <form
-      className="space-y-6"
+      className="admin-stack"
       onSubmit={async (event) => {
         event.preventDefault();
         setError(null);
         setMessage(null);
+        setSaving(true);
         const response = await fetch("/api/admin/site", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
         });
         const data = await response.json();
+        setSaving(false);
         if (!response.ok) {
           setError(typeof data.error === "string" ? data.error : t("saveFailed"));
           return;
@@ -224,14 +206,14 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
         setMessage(t("backgroundSaved"));
       }}
     >
-      <section className={panelClassName}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <section className="admin-card">
+        <div className="admin-card-head">
           <div>
-            <h2 className="text-xl font-semibold">{t("backgroundSettings")}</h2>
-            <p className="mt-2 text-sm text-[color:var(--muted)]">{t("backgroundSettingsHint")}</p>
+            <p className="admin-card-desc">{t("backgroundSettingsHint")}</p>
           </div>
           <div
-            className="h-20 w-44 rounded-3xl border border-white/10"
+            className="admin-swatch"
+            aria-hidden="true"
             style={{
               background: form.gradientEnabled
                 ? `linear-gradient(${form.gradientAngle}deg, ${form.gradientStart}, ${form.gradientEnd})`
@@ -241,193 +223,339 @@ export function BackgroundSettingsForm({ initialData }: { initialData: Backgroun
         </div>
       </section>
 
-      <section className={panelClassName}>
-        <h3 className="text-lg font-semibold">{t("generalBackground")}</h3>
-        <p className="mt-2 text-sm text-[color:var(--muted)]">{t("backgroundSettingsHint")}</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="flex items-center justify-between gap-4 rounded-2xl border border-[color:var(--border)] bg-black/5 px-4 py-3 text-sm dark:bg-white/5 md:col-span-2">
-            <span>
-              <span className="block font-medium">{t("showFriendLinks")}</span>
-              <span className="mt-1 block text-[color:var(--muted)]">{t("showFriendLinksHint")}</span>
-            </span>
-            <input
-              type="checkbox"
-              checked={form.showFriendLinks}
-              onChange={(e) => setForm({ ...form, showFriendLinks: e.target.checked })}
-              className="h-5 w-5 accent-cyan-400"
-            />
-          </label>
-          <FieldGroup label={t("accentColor")} hint={t("accentColorHint")}>
-            <input className={fieldClassName} value={form.accentColor} onChange={(e) => setForm({ ...form, accentColor: e.target.value })} placeholder="#4cc9ff" />
-          </FieldGroup>
-          <FieldGroup label={t("gradientMode")} hint={t("gradientModeHint")}>
-            <select className={selectClassName} value={String(form.gradientEnabled)} onChange={(e) => setForm({ ...form, gradientEnabled: e.target.value === "true" })}>
-              <option value="false">{t("gradientDisabled")}</option>
-              <option value="true">{t("gradientEnabled")}</option>
-            </select>
-          </FieldGroup>
-          <FieldGroup label={t("gradientStart")} hint={t("gradientStartHint")}>
-            <input className={fieldClassName} value={form.gradientStart} onChange={(e) => setForm({ ...form, gradientStart: e.target.value })} placeholder="#1297ff" />
-          </FieldGroup>
-          <FieldGroup label={t("gradientEnd")} hint={t("gradientEndHint")}>
-            <input className={fieldClassName} value={form.gradientEnd} onChange={(e) => setForm({ ...form, gradientEnd: e.target.value })} placeholder="#7b61ff" />
-          </FieldGroup>
-          <FieldGroup label={t("gradientAngle")} hint={t("gradientAngleHint")}>
-            <input className={fieldClassName} type="number" min={0} max={360} value={form.gradientAngle} onChange={(e) => setForm({ ...form, gradientAngle: Number(e.target.value) || 135 })} placeholder="135" />
-          </FieldGroup>
-          <FieldGroup label={t("heroMediaTypeLabel")} hint={t("heroMediaTypeHint")}>
-            <select className={selectClassName} value={form.heroMediaType} onChange={(e) => setForm({ ...form, heroMediaType: e.target.value as "image" | "video" })}>
-              <option value="image">{t("heroImage")}</option>
-              <option value="video">{t("heroVideo")}</option>
-            </select>
-          </FieldGroup>
-          <FieldGroup label={t("heroEffectLabel")} hint={t("heroEffectHint")}>
-            <select className={selectClassName} value={form.heroEffect} onChange={(e) => setForm({ ...form, heroEffect: e.target.value as "none" | "scroll-pan" | "parallax" })}>
-              <option value="none">{t("noScrollEffect")}</option>
-              <option value="scroll-pan">{t("scrollPan")}</option>
-              <option value="parallax">{t("parallax")}</option>
-            </select>
-          </FieldGroup>
-          <FieldGroup label={t("heroInterval")} hint={t("heroIntervalHint")}>
-            <input className={fieldClassName} type="number" min={1500} max={20000} step={100} value={form.heroImageIntervalMs} onChange={(e) => setForm({ ...form, heroImageIntervalMs: Number(e.target.value) || 4500 })} placeholder="4500" />
-          </FieldGroup>
-          <FieldGroup label={t("heroOverlayOpacity")} hint={t("heroOverlayOpacityHint")}>
-            <input className={fieldClassName} value={String(form.heroOverlayOpacity)} onChange={(e) => setForm({ ...form, heroOverlayOpacity: Number(e.target.value) || 55 })} placeholder="55" />
-          </FieldGroup>
-          <FieldGroup label={t("heroBackgroundPositionLabel")} hint={t("heroBackgroundPositionHint")}>
-            <PositionPicker
-              value={form.heroBackgroundPosition}
-              onChange={(position) => setForm({ ...form, heroBackgroundPosition: position })}
-            />
-          </FieldGroup>
-          <FieldGroup className="md:col-span-2" label={t("heroBackgroundRectPerImageLabel")} hint={t("heroBackgroundRectPerImageHint")}>
-            {fallbackList.length ? (
-              <div className="space-y-4">
-                {fallbackList.map((url, index) => (
-                  <CropPickerForUrl
-                    key={url}
-                    url={url}
-                    rects={rects}
-                    onRectsChange={setRects}
-                    label={`${t("heroBackgroundRectPerImageLabel")} ${index + 1} — ${shortUrl(url)}`}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-[color:var(--muted)]">{t("heroBackgroundRectNoImage")}</p>
-            )}
-          </FieldGroup>
-          <FieldGroup className="md:col-span-2" label={t("heroMediaUrl")} hint={t("heroMediaUrlHint")}>
-            <input className={fieldClassName} value={form.heroMediaUrl} onChange={(e) => setForm({ ...form, heroMediaUrl: e.target.value })} placeholder="https://example.com/background.webp" />
-          </FieldGroup>
-          <FieldGroup className="md:col-span-2" label={t("upload")} hint={t("heroUploadHint")}>
-            <FilePicker accept={form.heroMediaType === "video" ? "video/*" : "image/*"} onSelect={async (file) => {
-              const url = await upload("backgrounds", file);
-              if (!url) return;
-              if (form.heroMediaType === "video") {
-                setForm((prev) => ({ ...prev, heroMediaMode: "upload", heroMediaUrl: url }));
-                return;
-              }
-              setForm((prev) => ({
-                ...prev,
-                heroMediaMode: "upload",
-                heroMediaUrl: prev.heroMediaUrl || url,
-                heroMediaPlaylist: [prev.heroMediaPlaylist, url].filter(Boolean).join("\n"),
-              }));
-            }} />
-          </FieldGroup>
-          <FieldGroup label={t("heroPosterUrl")} hint={t("heroPosterUrlHint")}>
-            <input className={fieldClassName} value={form.heroPosterUrl} onChange={(e) => setForm({ ...form, heroPosterUrl: e.target.value })} placeholder="https://example.com/poster.webp" />
-          </FieldGroup>
-          <FieldGroup className="md:col-span-2" label={t("heroPlaylistLabel")} hint={t("heroPlaylistHint")}>
-            <textarea className={textareaClassName} value={form.heroMediaPlaylist} onChange={(e) => setForm({ ...form, heroMediaPlaylist: e.target.value })} placeholder={t("heroPlaylistPlaceholder")} />
-          </FieldGroup>
-          <div className="md:col-span-2 rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-[color:var(--muted)]">
-            {t("heroPlaylistHint")}
+      <section className="admin-card">
+        <div className="admin-card-head">
+          <div>
+            <h2 className="admin-card-title">{t("generalBackground")}</h2>
+            <p className="admin-card-desc">{t("heroMediaTypeHint")}</p>
+          </div>
+        </div>
+        <div className="admin-card-body">
+          <div className="admin-grid">
+            <label className="admin-check admin-span-2">
+              <input
+                type="checkbox"
+                checked={form.showFriendLinks}
+                onChange={(event) => setForm({ ...form, showFriendLinks: event.target.checked })}
+              />
+              <span className="admin-check-body">
+                <span className="admin-check-title">{t("showFriendLinks")}</span>
+                <span className="admin-hint">{t("showFriendLinksHint")}</span>
+              </span>
+            </label>
+
+            <FieldGroup label={t("accentColor")} hint={t("accentColorHint")}>
+              <input
+                className="admin-input admin-mono"
+                value={form.accentColor}
+                onChange={(event) => setForm({ ...form, accentColor: event.target.value })}
+                placeholder="#4cc9ff"
+              />
+            </FieldGroup>
+            <FieldGroup label={t("gradientMode")} hint={t("gradientModeHint")}>
+              <select
+                className="admin-select"
+                value={String(form.gradientEnabled)}
+                onChange={(event) => setForm({ ...form, gradientEnabled: event.target.value === "true" })}
+              >
+                <option value="false">{t("gradientDisabled")}</option>
+                <option value="true">{t("gradientEnabled")}</option>
+              </select>
+            </FieldGroup>
+            <FieldGroup label={t("gradientStart")} hint={t("gradientStartHint")}>
+              <input
+                className="admin-input admin-mono"
+                value={form.gradientStart}
+                onChange={(event) => setForm({ ...form, gradientStart: event.target.value })}
+                placeholder="#1297ff"
+              />
+            </FieldGroup>
+            <FieldGroup label={t("gradientEnd")} hint={t("gradientEndHint")}>
+              <input
+                className="admin-input admin-mono"
+                value={form.gradientEnd}
+                onChange={(event) => setForm({ ...form, gradientEnd: event.target.value })}
+                placeholder="#7b61ff"
+              />
+            </FieldGroup>
+            <FieldGroup label={t("gradientAngle")} hint={t("gradientAngleHint")}>
+              <input
+                className="admin-input"
+                type="number"
+                min={0}
+                max={360}
+                value={form.gradientAngle}
+                onChange={(event) => setForm({ ...form, gradientAngle: Number(event.target.value) || 135 })}
+                placeholder="135"
+              />
+            </FieldGroup>
+
+            <FieldGroup label={t("heroMediaTypeLabel")} hint={t("heroMediaTypeHint")}>
+              <select
+                className="admin-select"
+                value={form.heroMediaType}
+                onChange={(event) =>
+                  setForm({ ...form, heroMediaType: event.target.value as "image" | "video" })
+                }
+              >
+                <option value="image">{t("heroImage")}</option>
+                <option value="video">{t("heroVideo")}</option>
+              </select>
+            </FieldGroup>
+            <FieldGroup label={t("heroEffectLabel")} hint={t("heroEffectHint")}>
+              <select
+                className="admin-select"
+                value={form.heroEffect}
+                onChange={(event) =>
+                  setForm({ ...form, heroEffect: event.target.value as "none" | "scroll-pan" | "parallax" })
+                }
+              >
+                <option value="none">{t("noScrollEffect")}</option>
+                <option value="scroll-pan">{t("scrollPan")}</option>
+                <option value="parallax">{t("parallax")}</option>
+              </select>
+            </FieldGroup>
+            <FieldGroup label={t("heroInterval")} hint={t("heroIntervalHint")}>
+              <input
+                className="admin-input"
+                type="number"
+                min={1500}
+                max={20000}
+                step={100}
+                value={form.heroImageIntervalMs}
+                onChange={(event) =>
+                  setForm({ ...form, heroImageIntervalMs: Number(event.target.value) || 4500 })
+                }
+                placeholder="4500"
+              />
+            </FieldGroup>
+            <FieldGroup
+              label={`${t("heroOverlayOpacity")} · ${form.heroOverlayOpacity}%`}
+              hint={t("heroOverlayOpacityHint")}
+            >
+              <input
+                className="admin-range"
+                type="range"
+                min={0}
+                max={90}
+                value={form.heroOverlayOpacity}
+                onChange={(event) =>
+                  setForm({ ...form, heroOverlayOpacity: Number(event.target.value) })
+                }
+              />
+            </FieldGroup>
+            <FieldGroup label={t("heroBackgroundPositionLabel")} hint={t("heroBackgroundPositionHint")}>
+              <PositionPicker
+                value={form.heroBackgroundPosition}
+                onChange={(position) => setForm({ ...form, heroBackgroundPosition: position })}
+              />
+            </FieldGroup>
+
+            <FieldGroup span label={t("heroMediaUrl")} hint={t("heroMediaUrlHint")}>
+              <input
+                className="admin-input admin-mono"
+                value={form.heroMediaUrl}
+                onChange={(event) => setForm({ ...form, heroMediaUrl: event.target.value })}
+                placeholder="https://example.com/background.webp"
+              />
+            </FieldGroup>
+            <FieldGroup span label={t("upload")} hint={t("heroUploadHint")}>
+              <FilePicker
+                accept={form.heroMediaType === "video" ? "video/*" : "image/*"}
+                onSelect={async (file) => {
+                  const url = await upload("backgrounds", file);
+                  if (!url) return;
+                  if (form.heroMediaType === "video") {
+                    setForm((prev) => ({ ...prev, heroMediaMode: "upload", heroMediaUrl: url }));
+                    return;
+                  }
+                  setForm((prev) => ({
+                    ...prev,
+                    heroMediaMode: "upload",
+                    heroMediaUrl: prev.heroMediaUrl || url,
+                    heroMediaPlaylist: [prev.heroMediaPlaylist, url].filter(Boolean).join("\n"),
+                  }));
+                }}
+              />
+            </FieldGroup>
+            <FieldGroup span label={t("heroPlaylistLabel")} hint={t("heroPlaylistHint")}>
+              <textarea
+                className="admin-textarea"
+                value={form.heroMediaPlaylist}
+                onChange={(event) => setForm({ ...form, heroMediaPlaylist: event.target.value })}
+                placeholder={t("heroPlaylistPlaceholder")}
+              />
+            </FieldGroup>
+            <FieldGroup label={t("heroPosterUrl")} hint={t("heroPosterUrlHint")}>
+              <input
+                className="admin-input admin-mono"
+                value={form.heroPosterUrl}
+                onChange={(event) => setForm({ ...form, heroPosterUrl: event.target.value })}
+                placeholder="https://example.com/poster.webp"
+              />
+            </FieldGroup>
+
+            <FieldGroup span label={t("heroBackgroundRectPerImageLabel")} hint={t("heroBackgroundRectPerImageHint")}>
+              {fallbackList.length ? (
+                <div className="admin-stack" style={{ gap: 16 }}>
+                  {fallbackList.map((url, index) => (
+                    <CropPickerForUrl
+                      key={url}
+                      url={url}
+                      rects={rects}
+                      onRectsChange={setRects}
+                      label={`${t("heroBackgroundRectPerImageLabel")} ${index + 1} — ${shortUrl(url)}`}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="admin-hint">{t("heroBackgroundRectNoImage")}</p>
+              )}
+            </FieldGroup>
           </div>
         </div>
       </section>
+
       {form.heroMediaType === "image" ? (
         <>
-          <section className={panelClassName}>
-            <h3 className="text-lg font-semibold">{t("darkModeBackground")}</h3>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <FieldGroup className="md:col-span-2" label={t("darkHeroImageUrl")} hint={t("darkHeroImageUrlHint")}>
-                <input className={fieldClassName} value={form.heroDarkImageUrl} onChange={(e) => setForm({ ...form, heroDarkImageUrl: e.target.value })} placeholder="https://example.com/dark-background.webp" />
-              </FieldGroup>
-              <FieldGroup className="md:col-span-2" label={t("upload")} hint={t("darkHeroUploadHint")}>
-                <FilePicker accept="image/*" onSelect={async (file) => {
-                  const url = await upload("backgrounds", file);
-                  if (!url) return;
-                  setForm((prev) => ({
-                    ...prev,
-                    heroDarkImageUrl: prev.heroDarkImageUrl || url,
-                    heroDarkPlaylist: [prev.heroDarkPlaylist, url].filter(Boolean).join("\n"),
-                  }));
-                }} />
-              </FieldGroup>
-              <FieldGroup className="md:col-span-2" label={t("darkHeroPlaylist")} hint={t("darkHeroPlaylistHint")}>
-                <textarea className={textareaClassName} value={form.heroDarkPlaylist} onChange={(e) => setForm({ ...form, heroDarkPlaylist: e.target.value })} placeholder={t("darkHeroPlaylist")} />
-              </FieldGroup>
-              {darkOwnList.length ? (
-                <div className="md:col-span-2 space-y-4">
-                  {darkOwnList.map((url, index) => (
-                    <CropPickerForUrl
-                      key={url}
-                      url={url}
-                      rects={rects}
-                      onRectsChange={setRects}
-                      label={`${t("darkHeroCrop")} ${index + 1} — ${shortUrl(url)}`}
-                    />
-                  ))}
-                </div>
-              ) : null}
+          <section className="admin-card">
+            <div className="admin-card-head">
+              <div>
+                <h2 className="admin-card-title">{t("darkModeBackground")}</h2>
+                <p className="admin-card-desc">{t("darkHeroPlaylistHint")}</p>
+              </div>
+            </div>
+            <div className="admin-card-body">
+              <div className="admin-grid">
+                <FieldGroup span label={t("darkHeroImageUrl")} hint={t("darkHeroImageUrlHint")}>
+                  <input
+                    className="admin-input admin-mono"
+                    value={form.heroDarkImageUrl}
+                    onChange={(event) => setForm({ ...form, heroDarkImageUrl: event.target.value })}
+                    placeholder="https://example.com/dark-background.webp"
+                  />
+                </FieldGroup>
+                <FieldGroup span label={t("upload")} hint={t("darkHeroUploadHint")}>
+                  <FilePicker
+                    accept="image/*"
+                    onSelect={async (file) => {
+                      const url = await upload("backgrounds", file);
+                      if (!url) return;
+                      setForm((prev) => ({
+                        ...prev,
+                        heroDarkImageUrl: prev.heroDarkImageUrl || url,
+                        heroDarkPlaylist: [prev.heroDarkPlaylist, url].filter(Boolean).join("\n"),
+                      }));
+                    }}
+                  />
+                </FieldGroup>
+                <FieldGroup span label={t("darkHeroPlaylist")} hint={t("darkHeroPlaylistHint")}>
+                  <textarea
+                    className="admin-textarea"
+                    value={form.heroDarkPlaylist}
+                    onChange={(event) => setForm({ ...form, heroDarkPlaylist: event.target.value })}
+                    placeholder={t("darkHeroPlaylist")}
+                  />
+                </FieldGroup>
+                {darkOwnList.length ? (
+                  <div className="admin-span-2 admin-stack" style={{ gap: 16 }}>
+                    {darkOwnList.map((url, index) => (
+                      <CropPickerForUrl
+                        key={url}
+                        url={url}
+                        rects={rects}
+                        onRectsChange={setRects}
+                        label={`${t("darkHeroCrop")} ${index + 1} — ${shortUrl(url)}`}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </section>
 
-          <section className={panelClassName}>
-            <h3 className="text-lg font-semibold">{t("lightModeBackground")}</h3>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <FieldGroup className="md:col-span-2" label={t("lightHeroImageUrl")} hint={t("lightHeroImageUrlHint")}>
-                <input className={fieldClassName} value={form.heroLightImageUrl} onChange={(e) => setForm({ ...form, heroLightImageUrl: e.target.value })} placeholder="https://example.com/light-background.webp" />
-              </FieldGroup>
-              <FieldGroup className="md:col-span-2" label={t("upload")} hint={t("lightHeroUploadHint")}>
-                <FilePicker accept="image/*" onSelect={async (file) => {
-                  const url = await upload("backgrounds", file);
-                  if (!url) return;
-                  setForm((prev) => ({
-                    ...prev,
-                    heroLightImageUrl: prev.heroLightImageUrl || url,
-                    heroLightPlaylist: [prev.heroLightPlaylist, url].filter(Boolean).join("\n"),
-                  }));
-                }} />
-              </FieldGroup>
-              <FieldGroup className="md:col-span-2" label={t("lightHeroPlaylist")} hint={t("lightHeroPlaylistHint")}>
-                <textarea className={textareaClassName} value={form.heroLightPlaylist} onChange={(e) => setForm({ ...form, heroLightPlaylist: e.target.value })} placeholder={t("lightHeroPlaylist")} />
-              </FieldGroup>
-              {lightOwnList.length ? (
-                <div className="md:col-span-2 space-y-4">
-                  {lightOwnList.map((url, index) => (
-                    <CropPickerForUrl
-                      key={url}
-                      url={url}
-                      rects={rects}
-                      onRectsChange={setRects}
-                      label={`${t("lightHeroCrop")} ${index + 1} — ${shortUrl(url)}`}
-                    />
-                  ))}
-                </div>
-              ) : null}
-              <div className="md:col-span-2 rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-[color:var(--muted)]">
-                {t("themePlaylistHint")}
+          <section className="admin-card">
+            <div className="admin-card-head">
+              <div>
+                <h2 className="admin-card-title">{t("lightModeBackground")}</h2>
+                <p className="admin-card-desc">{t("themePlaylistHint")}</p>
+              </div>
+            </div>
+            <div className="admin-card-body">
+              <div className="admin-grid">
+                <FieldGroup span label={t("lightHeroImageUrl")} hint={t("lightHeroImageUrlHint")}>
+                  <input
+                    className="admin-input admin-mono"
+                    value={form.heroLightImageUrl}
+                    onChange={(event) => setForm({ ...form, heroLightImageUrl: event.target.value })}
+                    placeholder="https://example.com/light-background.webp"
+                  />
+                </FieldGroup>
+                <FieldGroup span label={t("upload")} hint={t("lightHeroUploadHint")}>
+                  <FilePicker
+                    accept="image/*"
+                    onSelect={async (file) => {
+                      const url = await upload("backgrounds", file);
+                      if (!url) return;
+                      setForm((prev) => ({
+                        ...prev,
+                        heroLightImageUrl: prev.heroLightImageUrl || url,
+                        heroLightPlaylist: [prev.heroLightPlaylist, url].filter(Boolean).join("\n"),
+                      }));
+                    }}
+                  />
+                </FieldGroup>
+                <FieldGroup span label={t("lightHeroPlaylist")} hint={t("lightHeroPlaylistHint")}>
+                  <textarea
+                    className="admin-textarea"
+                    value={form.heroLightPlaylist}
+                    onChange={(event) => setForm({ ...form, heroLightPlaylist: event.target.value })}
+                    placeholder={t("lightHeroPlaylist")}
+                  />
+                </FieldGroup>
+                {lightOwnList.length ? (
+                  <div className="admin-span-2 admin-stack" style={{ gap: 16 }}>
+                    {lightOwnList.map((url, index) => (
+                      <CropPickerForUrl
+                        key={url}
+                        url={url}
+                        rects={rects}
+                        onRectsChange={setRects}
+                        label={`${t("lightHeroCrop")} ${index + 1} — ${shortUrl(url)}`}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
           </section>
         </>
       ) : null}
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-      {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
-      <button className="rounded-2xl bg-cyan-400 px-5 py-3 font-medium text-slate-950" type="submit">{t("saveBackground")}</button>
+
+      <div className="admin-savebar">
+        <span className="admin-btn-row" aria-live="polite">
+          {error ? (
+            <span className="admin-alert" data-variant="error">
+              <AlertCircle className="h-4 w-4" />
+              {error}
+            </span>
+          ) : message ? (
+            <span className="admin-alert" data-variant="success">
+              <CheckCircle2 className="h-4 w-4" />
+              {message}
+            </span>
+          ) : (
+            <span className="admin-alert" data-variant="info">
+              <Info className="h-4 w-4" />
+              {t("saveHint")}
+            </span>
+          )}
+        </span>
+        <button className="admin-btn" data-variant="primary" data-size="lg" type="submit" disabled={saving} aria-busy={saving}>
+          <Save className="h-4 w-4" />
+          {saving ? t("working") : t("saveBackground")}
+        </button>
+      </div>
     </form>
   );
 }

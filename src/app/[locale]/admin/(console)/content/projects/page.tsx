@@ -1,4 +1,3 @@
-import { AdminShell } from "@/components/admin/admin-shell";
 import { ProjectManager } from "@/components/admin/project-manager";
 import { requireAdminPageWith2FA } from "@/lib/admin-page";
 import { prisma } from "@/lib/prisma";
@@ -32,9 +31,5 @@ export default async function ProjectsPage({
     },
   }));
 
-  return (
-    <AdminShell locale={locale}>
-      <ProjectManager initialProjects={formatted} />
-    </AdminShell>
-  );
+  return <ProjectManager initialProjects={formatted} />;
 }

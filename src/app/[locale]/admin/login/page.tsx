@@ -1,12 +1,17 @@
 import { redirect } from "next/navigation";
 
+import { AdminAuthShell } from "@/components/admin/admin-auth-shell";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
 import { getSessionOrNull, isAdminEmail } from "@/lib/admin";
+
+// Admin auth surfaces always render per request: the brand comes from the DB
+// and the session decides whether the form is even shown.
+export const dynamic = "force-dynamic";
 
 export default async function AdminLoginPage({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: "zh" | "en" }>;
 }) {
   const { locale } = await params;
   const session = await getSessionOrNull();
@@ -16,10 +21,8 @@ export default async function AdminLoginPage({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-24">
-      <div className="w-full max-w-md">
-        <AdminLoginForm locale={locale} />
-      </div>
-    </main>
+    <AdminAuthShell locale={locale}>
+      <AdminLoginForm locale={locale} />
+    </AdminAuthShell>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { AlertCircle, CheckCircle2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { FilePicker } from "@/components/admin/file-picker";
 
@@ -27,9 +28,11 @@ const emptyLink: FriendLink = {
   isPublished: true,
 };
 
-const fieldClassName =
-  "w-full rounded-2xl border border-[color:var(--border)] bg-white/80 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-500 transition-colors dark:bg-slate-950/35 dark:text-slate-100 dark:placeholder:text-slate-400";
-
+/**
+ * Friend links and contact links share one table (`SocialLink`), split by
+ * `category`, so the page shows one list + one editor at a time with a tab
+ * switch — and every field carries a real label instead of a placeholder.
+ */
 export function FriendLinksManager({ initialLinks }: { initialLinks: FriendLink[] }) {
   const t = useTranslations("admin");
   const [category, setCategory] = useState<"friend" | "contact">("friend");
@@ -37,20 +40,34 @@ export function FriendLinksManager({ initialLinks }: { initialLinks: FriendLink[
   const [editing, setEditing] = useState<FriendLink>({ ...emptyLink, category });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const visibleLinks = links.filter((link) => (link.category ?? "friend") === category);
+  const isEditingExisting = Boolean(editing.id);
+
+  function startNew(nextCategory: "friend" | "contact" = category) {
+    setEditing({ ...emptyLink, category: nextCategory });
+    setMessage(null);
+    setError(null);
+  }
 
   function switchCategory(next: "friend" | "contact") {
     setCategory(next);
-    setEditing({ ...emptyLink, category: next });
-    setMessage(null);
-    setError(null);
+    startNew(next);
   }
 
   async function refresh() {
     const response = await fetch("/api/admin/social", { cache: "no-store" });
     const data = await response.json();
     setLinks(data.links);
+  }
+
+  async function remove(link: FriendLink) {
+    if (!link.id) return;
+    if (!window.confirm(t("confirmDelete", { name: link.label || link.url }))) return;
+    await fetch(`/api/admin/social/${link.id}`, { method: "DELETE" });
+    if (editing.id === link.id) startNew();
+    await refresh();
   }
 
   async function upload(file?: File | null) {
@@ -60,75 +77,118 @@ export function FriendLinksManager({ initialLinks }: { initialLinks: FriendLink[
     body.append("file", file);
     const response = await fetch("/api/admin/upload", { method: "POST", body });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? "Upload failed");
+    if (!response.ok) throw new Error(data.error ?? t("uploadFailed"));
     return data.url as string;
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <section className="glass-panel rounded-[1.75rem] p-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold">{t(category === "friend" ? "friendLinks" : "contactLinks")}</h2>
-          <div className="flex gap-1 rounded-full border border-white/10 p-1">
-            <button type="button" className={`rounded-full px-4 py-1.5 text-sm transition-colors ${category === "friend" ? "bg-cyan-400 text-slate-950" : "text-[color:var(--muted)] hover:bg-white/5"}`} onClick={() => switchCategory("friend")}>{t("friendLinks")}</button>
-            <button type="button" className={`rounded-full px-4 py-1.5 text-sm transition-colors ${category === "contact" ? "bg-cyan-400 text-slate-950" : "text-[color:var(--muted)] hover:bg-white/5"}`} onClick={() => switchCategory("contact")}>{t("contactLinks")}</button>
+    <div className="admin-grid" style={{ gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.95fr)", alignItems: "start" }}>
+      <section className="admin-card">
+        <div className="admin-card-head">
+          <div>
+            <h2 className="admin-card-title">{t(category === "friend" ? "friendLinks" : "contactLinks")}</h2>
+            <p className="admin-card-desc">
+              {t(category === "friend" ? "friendLinksListHint" : "contactLinksListHint")}
+            </p>
+          </div>
+          <div className="admin-tabs" role="tablist" aria-label={t("linkCategories")}>
+            {(["friend", "contact"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                role="tab"
+                aria-selected={category === item}
+                className="admin-tab"
+                onClick={() => switchCategory(item)}
+              >
+                {t(item === "friend" ? "friendLinks" : "contactLinks")}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="mt-4 space-y-3">
-          {visibleLinks.map((link) => (
-            <div key={link.id ?? link.url} className="rounded-2xl border border-white/10 bg-black/10 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
+        <div className="admin-card-body" data-flush="true">
+          {visibleLinks.length === 0 ? (
+            <div className="admin-empty">
+              <Plus className="h-5 w-5" />
+              <strong>{category === "contact" ? t("emptyContactLinks") : t("emptyFriendLinks")}</strong>
+              <p>{t(category === "contact" ? "emptyContactLinksHint" : "emptyFriendLinksHint")}</p>
+            </div>
+          ) : (
+            <div className="admin-list">
+              {visibleLinks.map((link) => (
+                <div
+                  key={link.id ?? link.url}
+                  className="admin-list-row"
+                  data-selected={editing.id === link.id}
+                >
                   {link.imageUrl ? (
                     <Image
+                      className="admin-list-thumb"
                       src={link.imageUrl}
-                      alt={link.label}
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 rounded-2xl border border-white/10 object-cover"
+                      alt=""
+                      width={46}
+                      height={46}
                       unoptimized
                     />
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-dashed border-white/10 text-xs text-[color:var(--muted)]">
-                      IMG
-                    </div>
+                    <span className="admin-list-thumb" data-fallback="true">
+                      {(link.label || "?").slice(0, 1).toUpperCase()}
+                    </span>
                   )}
-                  <div>
-                    <h3 className="font-semibold">{link.label}</h3>
-                    <p className="text-sm text-[color:var(--muted)]">{link.url}</p>
+                  <div className="admin-list-main">
+                    <span className="admin-list-title">{link.label}</span>
+                    <span className="admin-list-meta">{link.url.replace(/^https?:\/\//, "")}</span>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" className="rounded-full border border-white/10 px-3 py-1.5 text-sm" onClick={() => setEditing(link)}>{t("edit")}</button>
-                  {link.id ? (
+                  <span className="admin-list-actions">
+                    {link.isPublished ? null : (
+                      <span className="admin-badge" data-tone="warn">
+                        {t("draft")}
+                      </span>
+                    )}
                     <button
                       type="button"
-                      className="rounded-full border border-rose-400/20 px-3 py-1.5 text-sm text-rose-300"
-                      onClick={async () => {
-                        await fetch(`/api/admin/social/${link.id}`, { method: "DELETE" });
-                        await refresh();
+                      className="admin-btn"
+                      data-size="sm"
+                      data-icon="true"
+                      aria-label={t("edit")}
+                      title={t("edit")}
+                      onClick={() => {
+                        setEditing(link);
+                        setMessage(null);
+                        setError(null);
                       }}
                     >
-                      {t("delete")}
+                      <Pencil className="h-3.5 w-3.5" />
                     </button>
-                  ) : null}
+                    {link.id ? (
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        data-variant="danger"
+                        data-size="sm"
+                        data-icon="true"
+                        aria-label={t("delete")}
+                        title={t("delete")}
+                        onClick={() => remove(link)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
+                  </span>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-          {visibleLinks.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-[color:var(--muted)]">
-              {category === "contact" ? t("emptyContactLinks") : t("emptyFriendLinks")}
-            </div>
-          ) : null}
+          )}
         </div>
       </section>
+
       <form
-        className="glass-panel space-y-4 rounded-[1.75rem] p-6"
+        className="admin-card"
         onSubmit={async (event) => {
           event.preventDefault();
           setError(null);
           setMessage(null);
+          setSaving(true);
           const url = editing.id ? `/api/admin/social/${editing.id}` : "/api/admin/social";
           const method = editing.id ? "PATCH" : "POST";
           const response = await fetch(url, {
@@ -137,37 +197,125 @@ export function FriendLinksManager({ initialLinks }: { initialLinks: FriendLink[
             body: JSON.stringify(editing),
           });
           const data = await response.json();
+          setSaving(false);
           if (!response.ok) {
             setError(typeof data.error === "string" ? data.error : t("saveFailed"));
             return;
           }
           setMessage(t("friendLinkSaved"));
-          setEditing({ ...emptyLink, category });
+          startNew();
           await refresh();
         }}
       >
-        <h2 className="text-xl font-semibold">{t(category === "friend" ? "friendLinksEditor" : "contactLinksEditor")}</h2>
-        <input className={fieldClassName} placeholder={category === "friend" ? t("friendLinkName") : t("contactLinkName")} value={editing.label} onChange={(e) => setEditing({ ...editing, label: e.target.value })} />
-        <input className={fieldClassName} placeholder={t("friendLinkUrl")} value={editing.url} onChange={(e) => setEditing({ ...editing, url: e.target.value })} />
-        <input className={fieldClassName} placeholder={category === "friend" ? t("friendLinkImageUrl") : t("contactLinkImageUrl")} value={editing.imageUrl ?? ""} onChange={(e) => setEditing({ ...editing, imageUrl: e.target.value })} />
-        <FilePicker accept="image/*" onSelect={async (file) => {
-          const url = await upload(file);
-          if (url) {
-            setEditing((prev) => ({ ...prev, imageUrl: url }));
-          }
-        }} />
-        <label className="block space-y-2">
-          <span className="block text-sm font-medium text-foreground">{t("sortOrder")}</span>
-          <span className="block text-xs leading-5 text-[color:var(--muted)]">{t("sortOrderHint")}</span>
-          <input className={fieldClassName} type="number" placeholder={t("sortOrder")} value={editing.sortOrder} onChange={(e) => setEditing({ ...editing, sortOrder: Number(e.target.value) || 0 })} />
-        </label>
-        <label className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm">
-          <span>{t("isPublished")}</span>
-          <input type="checkbox" checked={editing.isPublished} onChange={(e) => setEditing({ ...editing, isPublished: e.target.checked })} className="h-5 w-5 accent-cyan-400" />
-        </label>
-        {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-        {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
-        <button className="rounded-2xl bg-cyan-400 px-5 py-3 font-medium text-slate-950" type="submit">{t("saveFriendLink")}</button>
+        <div className="admin-card-head">
+          <div>
+            <h2 className="admin-card-title">
+              {isEditingExisting
+                ? t("editLinkTitle")
+                : category === "friend"
+                  ? t("friendLinksEditor")
+                  : t("contactLinksEditor")}
+            </h2>
+            <p className="admin-card-desc">{t("linkFormHint")}</p>
+          </div>
+          {isEditingExisting ? (
+            <button type="button" className="admin-btn" data-size="sm" data-variant="ghost" onClick={() => startNew()}>
+              <X className="h-3.5 w-3.5" />
+              {t("cancelEdit")}
+            </button>
+          ) : null}
+        </div>
+        <div className="admin-card-body">
+          <div className="admin-stack" style={{ gap: 16 }}>
+            <label className="admin-field">
+              <span className="admin-label">{category === "friend" ? t("friendLinkName") : t("contactLinkName")}</span>
+              <input
+                className="admin-input"
+                value={editing.label}
+                onChange={(event) => setEditing({ ...editing, label: event.target.value })}
+              />
+            </label>
+
+            <label className="admin-field">
+              <span className="admin-label">{t("friendLinkUrl")}</span>
+              <input
+                className="admin-input admin-mono"
+                value={editing.url}
+                placeholder="https://"
+                onChange={(event) => setEditing({ ...editing, url: event.target.value })}
+              />
+            </label>
+
+            <label className="admin-field">
+              <span className="admin-label">
+                {category === "friend" ? t("friendLinkImageUrl") : t("contactLinkImageUrl")}
+              </span>
+              <input
+                className="admin-input admin-mono"
+                value={editing.imageUrl ?? ""}
+                onChange={(event) => setEditing({ ...editing, imageUrl: event.target.value })}
+              />
+            </label>
+            <FilePicker
+              accept="image/*"
+              onSelect={async (file) => {
+                const url = await upload(file);
+                if (url) setEditing((prev) => ({ ...prev, imageUrl: url }));
+              }}
+            />
+
+            <div className="admin-grid">
+              <label className="admin-field">
+                <span className="admin-label">{t("sortOrder")}</span>
+                <span className="admin-hint">{t("sortOrderHint")}</span>
+                <input
+                  className="admin-input"
+                  type="number"
+                  value={editing.sortOrder}
+                  onChange={(event) => setEditing({ ...editing, sortOrder: Number(event.target.value) || 0 })}
+                />
+              </label>
+              <div className="admin-field" style={{ justifyContent: "flex-end" }}>
+                <label className="admin-check">
+                  <input
+                    type="checkbox"
+                    checked={editing.isPublished}
+                    onChange={(event) => setEditing({ ...editing, isPublished: event.target.checked })}
+                  />
+                  <span className="admin-check-body">
+                    <span className="admin-check-title">{t("isPublished")}</span>
+                    <span className="admin-hint">{t("isPublishedHint")}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {error ? (
+              <p className="admin-alert" data-variant="error">
+                <AlertCircle className="h-4 w-4" />
+                {error}
+              </p>
+            ) : null}
+            {message ? (
+              <p className="admin-alert" data-variant="success">
+                <CheckCircle2 className="h-4 w-4" />
+                {message}
+              </p>
+            ) : null}
+
+            <div className="admin-btn-row">
+              <button className="admin-btn" data-variant="primary" type="submit" disabled={saving} aria-busy={saving}>
+                <Save className="h-4 w-4" />
+                {saving ? t("working") : t("saveFriendLink")}
+              </button>
+              {isEditingExisting ? (
+                <button type="button" className="admin-btn" data-variant="ghost" onClick={() => startNew()}>
+                  {t("cancelEdit")}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
       </form>
     </div>
   );

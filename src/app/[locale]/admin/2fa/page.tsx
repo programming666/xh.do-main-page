@@ -1,17 +1,20 @@
+import { AdminAuthShell } from "@/components/admin/admin-auth-shell";
 import { TwoFactorVerifyForm } from "@/components/admin/two-factor-verify-form";
+
+// Admin auth surfaces always render per request: the brand comes from the DB
+// and the session decides whether the form is even shown.
+export const dynamic = "force-dynamic";
 
 export default async function TwoFactorPage({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: "zh" | "en" }>;
 }) {
   const { locale } = await params;
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-24">
-      <div className="w-full max-w-md">
-        <TwoFactorVerifyForm locale={locale} />
-      </div>
-    </main>
+    <AdminAuthShell locale={locale}>
+      <TwoFactorVerifyForm locale={locale} />
+    </AdminAuthShell>
   );
 }
