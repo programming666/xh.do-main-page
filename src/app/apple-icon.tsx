@@ -1,7 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @next/next/no-img-element -- Satori only understands plain <img> */
 import { ImageResponse } from "next/og";
 
 import { ensureSiteSettings } from "@/lib/site-data";
+import { iconInitials, resolveIconLogo } from "@/lib/site-icon";
 
 export const size = {
   width: 180,
@@ -11,18 +12,14 @@ export const size = {
 export const contentType = "image/png";
 export const dynamic = "force-dynamic";
 
-function toAbsoluteUrl(url: string | null | undefined) {
-  if (!url) return null;
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-  const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-  return new URL(url, base).toString();
-}
-
+/**
+ * iOS home-screen icon, same source as the favicon: the admin's Logo,
+ * normalised into a data URI by `resolveIconLogo` (Satori cannot paint an SVG
+ * or fetch a remote file), with the site-name monogram as the fallback.
+ */
 export default async function AppleIcon() {
   const site = await ensureSiteSettings();
-  const logoUrl = toAbsoluteUrl(site.logoUrl);
+  const logo = await resolveIconLogo(site.logoUrl, 280);
 
   return new ImageResponse(
     (
@@ -38,14 +35,8 @@ export default async function AppleIcon() {
           overflow: "hidden",
         }}
       >
-        {logoUrl ? (
-          <img
-            src={logoUrl}
-            alt={site.siteName}
-            width="140"
-            height="140"
-            style={{ objectFit: "contain" }}
-          />
+        {logo ? (
+          <img src={logo} alt="" width={140} height={140} style={{ objectFit: "contain" }} />
         ) : (
           <div
             style={{
@@ -54,7 +45,7 @@ export default async function AppleIcon() {
               letterSpacing: "0.08em",
             }}
           >
-            {site.siteName.slice(0, 2).toUpperCase()}
+            {iconInitials(site.siteName)}
           </div>
         )}
       </div>

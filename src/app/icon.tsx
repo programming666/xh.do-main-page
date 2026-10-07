@@ -1,7 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
 
 import { ensureSiteSettings } from "@/lib/site-data";
+import { iconInitials, resolveIconLogo } from "@/lib/site-icon";
 
 export const size = {
   width: 64,
@@ -11,19 +11,20 @@ export const size = {
 export const contentType = "image/png";
 export const dynamic = "force-dynamic";
 
-function toAbsoluteUrl(url: string | null | undefined) {
-  if (!url) return null;
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-
-  const base = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-  return new URL(url, base).toString();
-}
-
+/**
+ * Dynamic favicon, generated from the admin's Logo (Site settings → Brand &
+ * identity). There is no static `favicon.ico` in the app any more — the tab
+ * icon is always this route, and `/favicon.ico` is redirected to it in
+ * `next.config.ts` for clients that only know the classic path.
+ *
+ * The logo is normalised by `resolveIconLogo` (rasterised, inlined as a data
+ * URI) because Satori silently drops SVG sources and cannot fetch from the
+ * edge; without it the icon rendered as an empty tile. No logo, or an
+ * unreadable one, falls back to the site-name monogram.
+ */
 export default async function Icon() {
   const site = await ensureSiteSettings();
-  const logoUrl = toAbsoluteUrl(site.logoUrl);
+  const logo = await resolveIconLogo(site.logoUrl, 96);
 
   return new ImageResponse(
     (
@@ -41,14 +42,11 @@ export default async function Icon() {
           border: "2px solid rgba(76, 201, 255, 0.28)",
         }}
       >
-        {logoUrl ? (
-          <img
-            src={logoUrl}
-            alt={site.siteName}
-            width="48"
-            height="48"
-            style={{ objectFit: "contain" }}
-          />
+        {logo ? (
+          // Numeric dimensions on purpose: Satori rejects string width/height
+          // ("Invalid value "48"") and then silently drops the image.
+          // eslint-disable-next-line @next/next/no-img-element -- Satori only understands plain <img>
+          <img src={logo} alt="" width={48} height={48} style={{ objectFit: "contain" }} />
         ) : (
           <div
             style={{
@@ -57,7 +55,7 @@ export default async function Icon() {
               letterSpacing: "0.08em",
             }}
           >
-            {site.siteName.slice(0, 2).toUpperCase()}
+            {iconInitials(site.siteName)}
           </div>
         )}
       </div>

@@ -101,6 +101,19 @@ function createNextConfig(isDev: boolean): NextConfig {
         },
       ],
     },
+    async redirects() {
+      return [
+        {
+          // No static favicon.ico ships any more — the tab icon is generated
+          // from the admin's Logo at /icon (see src/app/icon.tsx). Clients that
+          // only ever request the classic path (old bookmarks, feed readers,
+          // bare curl checks) should still land on that icon instead of a 404.
+          source: "/favicon.ico",
+          destination: "/icon",
+          permanent: false,
+        },
+      ];
+    },
     async headers() {
       return [
         {
