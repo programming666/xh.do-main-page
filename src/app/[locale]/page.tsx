@@ -1,165 +1,62 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { EditorialFooter } from "@/components/editorial-footer";
 import { ContactLinks } from "@/components/home/contact-links";
 import { ProjectCard } from "@/components/home/project-card";
-import { TechBackground } from "@/components/home/tech-background";
 import { Link } from "@/i18n/navigation";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { getHomePageData } from "@/lib/site-data";
-import { HERO_INLINE_AVIF } from "@/lib/generated-hero-inline";
-import { parseHeroBackgroundRect, parseHeroBackgroundRects } from "@/lib/hero-crop";
+import { isVisibleSectionHref, visibleSections } from "@/lib/appearance";
 
-
-// ISR: regenerate the static HTML at most every 60s so the homepage stays
-// cacheable at the CDN (fixes the 3.4s cold TTFB / 6.8s mobile LCP) while
-// still picking up content changes within a minute.
+// Keep public pages CDN-cacheable while refreshing managed content every minute.
 export const revalidate = 60;
 
-export default async function LocaleHomePage({
-  params,
-}: {
-  params: Promise<{ locale: AppLocale }>;
-}) {
+export default async function LocaleHomePage({ params }: { params: Promise<{ locale: AppLocale }> }) {
   const { locale } = await params;
-  // Guard: /xxx-style single-segment paths route into the [locale] segment
-  // with an invalid locale. Reading site.translation below would crash on an
-  // undefined translation, so reject unknown locales up front (404). The
-  // layout also guards, but the page body renders in parallel during streaming.
-  if (!hasLocale(routing.locales, locale)) {
-    notFound();
-  }
-  // Cache the locale so next-intl's getTranslations below resolves it without
-  // reading the x-next-intl-locale request header, letting this public page be
-  // statically rendered + ISR-cached at the CDN.
+  if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "hero" });
   const { site, projects, contactLinks } = await getHomePageData(locale);
-  const translation = site.translation;
-  const showSecondaryCta =
-    Boolean(translation.secondaryLabel && translation.secondaryHref) &&
-    !translation.secondaryHref.includes("/admin");
-
-  return (
-    <main className="relative overflow-hidden px-4 pb-20 pt-24 sm:px-6 lg:px-10">
-      <div className="content-shell space-y-10">
-        <section className="glass-panel relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-12 lg:px-14 lg:py-16">
-          <TechBackground
-            mediaType={site.heroMediaType as "image" | "video"}
-            mediaUrl={site.heroMediaUrl}
-            mediaItems={site.heroMediaItems}
-            lightMediaItems={site.heroLightItems}
-            darkMediaItems={site.heroDarkItems}
-            posterUrl={site.heroPosterUrl}
-            effect={site.heroEffect as "none" | "scroll-pan" | "parallax"}
-            backgroundPosition={site.heroBackgroundPosition}
-            backgroundRect={parseHeroBackgroundRect(site.heroBackgroundRect)}
-            backgroundRects={parseHeroBackgroundRects(site.heroBackgroundRects)}
-            overlayOpacity={site.heroOverlayOpacity}
-            intervalMs={site.heroImageIntervalMs}
-            accentColor={site.accentColor}
-            gradientEnabled={site.gradientEnabled}
-            gradientStart={site.gradientStart}
-            gradientEnd={site.gradientEnd}
-            gradientAngle={site.gradientAngle}
-            inlineDarkFirst={HERO_INLINE_AVIF}
-          />
-          <div className="relative z-10 grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-4 rounded-full border border-white/12 bg-slate-950/25 px-5 py-3 text-xs uppercase tracking-[0.28em] text-cyan-200/90">
-                {site.logoUrl ? (
-                  <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/92 p-2 shadow-[0_0_30px_rgba(76,201,255,0.18)]">
-                    <Image src={site.logoUrl} alt={site.siteName} fill className="object-contain p-2" unoptimized />
-                  </span>
-                ) : null}
-                <span>{translation.eyebrow}</span>
-              </div>
-              <div className="space-y-4">
-                <h1 className="hero-text-shadow max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                  {translation.headline}
-                </h1>
-                <p className="max-w-2xl text-base leading-8 text-slate-200/85 sm:text-lg">
-                  {translation.subheadline}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-4">
-                <a className="rounded-full bg-cyan-400 px-5 py-3 font-medium text-slate-950 transition-transform duration-200 ease-out hover:scale-[1.02]" href={translation.primaryHref}>
-                  {translation.primaryLabel}
-                </a>
-                {showSecondaryCta ? (
-                  translation.secondaryHref.startsWith("#") ? (
-                    <a className="rounded-full border border-white/20 bg-white/10 px-5 py-3 font-medium text-white" href={translation.secondaryHref}>
-                      {translation.secondaryLabel}
-                    </a>
-                  ) : (
-                    <Link className="rounded-full border border-white/20 bg-white/10 px-5 py-3 font-medium text-white" href={translation.secondaryHref}>
-                      {translation.secondaryLabel}
-                    </Link>
-                  )
-                ) : null}
-              </div>
-            </div>
-            <div id="about" className="space-y-4 rounded-[1.75rem] border border-white/10 bg-slate-950/35 p-6 text-sm text-slate-200/82 backdrop-blur-sm">
-              <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">{translation.aboutTitle}</p>
-              <p className="leading-7">{translation.aboutBody}</p>
-            </div>
-          </div>
-          {contactLinks.length ? (
-            <div className="relative z-10 mt-12 rounded-2xl border border-white/10 bg-slate-950/30 px-6 py-5 backdrop-blur-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-[0.24em] text-cyan-300">{t("contactBarTitle")}</p>
-                <p className="hidden text-[11px] text-slate-400/70 sm:block">{t("contactBarHint")}</p>
-              </div>
-              <div className="mt-4">
-                <ContactLinks links={contactLinks} />
-              </div>
-            </div>
-          ) : null}
-        </section>
-
-        <section id="projects" className="space-y-6">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-accent">{t("featured")}</p>
-              <h2 className="mt-3 flex items-baseline gap-3 text-3xl font-semibold">
-                <span>{t("projects")}</span>
-                <span className="text-2xl font-medium text-accent/90">({projects.length})</span>
-              </h2>
-            </div>
-          </div>
-          {projects.length ? (
-            <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-3">
-              {projects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  title={project.translation.title}
-                  summary={project.translation.summary}
-                  description={project.translation.description}
-                  techStack={project.translation.techStack}
-                  coverUrl={project.coverUrl}
-                  demoUrl={project.demoUrl}
-                  repoUrl={project.repoUrl}
-                  featured={project.isFeatured}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="glass-panel rounded-3xl p-8 text-[color:var(--muted)]">{t("emptyProjects")}</div>
-          )}
-        </section>
-
-        <footer className="px-2 py-4 text-sm text-[color:var(--muted)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6">
-            <span>
-              {translation.footerText?.trim()
-                ? translation.footerText
-                : t("footerTagline", { siteName: site.siteName })}
-            </span>
-          </div>
-        </footer>
+  const { translation, appearance } = site;
+  const hasContacts = contactLinks.length > 0;
+  const showSecondary = Boolean(translation.secondaryLabel && translation.secondaryHref)
+    && !translation.secondaryHref.includes("/admin")
+    && isVisibleSectionHref(translation.secondaryHref, appearance, hasContacts);
+  const modules = {
+    projects: <section id="projects" className="editorial-section" key="projects">
+      <div className="section-heading"><div><span className="editorial-kicker">{t("featured")}</span><h2>{t("work")}<sup>{String(projects.length).padStart(2, "0")}</sup></h2></div><span className="section-marker" aria-hidden="true">↙</span></div>
+      {projects.length ? <div className="editorial-projects" data-style={appearance.projectStyle}>
+        {projects.map((project, index) => <ProjectCard key={project.id}
+          title={project.translation.title} summary={project.translation.summary}
+          description={project.translation.description} techStack={project.translation.techStack}
+          coverUrl={project.coverUrl} demoUrl={project.demoUrl} repoUrl={project.repoUrl}
+          featured={project.isFeatured} index={index + 1} />)}
+      </div> : <p className="editorial-empty">{t("emptyProjects")}</p>}
+    </section>,
+    about: <section id="about" className="editorial-section editorial-about" key="about">
+      <div><span className="editorial-kicker">{t("aboutSection")}</span><h2>{translation.aboutTitle}</h2></div>
+      <p>{translation.aboutBody}</p>
+    </section>,
+    contact: <section id="contact" className="editorial-section editorial-contact" key="contact">
+      <div className="section-heading"><div><span className="editorial-kicker">{t("elsewhere")}</span><h2>{t("contactBarTitle")}</h2></div></div>
+      <ContactLinks links={contactLinks} />
+    </section>,
+  };
+  return <main>
+    <section className="editorial-hero" data-media="false">
+      <div className="editorial-intro">
+        <p className="editorial-kicker"><span className="editorial-dot" />{translation.eyebrow}</p>
+        <h1>{translation.headline}</h1>
+        <p className="editorial-deck">{translation.subheadline}</p>
+        <div className="editorial-actions">
+          {isVisibleSectionHref(translation.primaryHref, appearance, hasContacts) ? <a className="editorial-button" href={translation.primaryHref}>{translation.primaryLabel}<span aria-hidden="true">↗</span></a> : null}
+          {showSecondary ? <Link className="editorial-text-link" href={translation.secondaryHref}>{translation.secondaryLabel}<span aria-hidden="true">↗</span></Link> : null}
+        </div>
       </div>
-    </main>
-  );
+    </section>
+    {visibleSections(appearance, hasContacts).map((key) => modules[key])}
+    <EditorialFooter locale={locale} siteName={site.siteName} footerText={translation.footerText} />
+  </main>;
 }

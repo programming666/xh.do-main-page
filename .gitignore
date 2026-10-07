@@ -64,6 +64,7 @@ next-env.d.ts
 # pi helper scripts (use env-var SSH_PASSWORD, never commit deploy creds)
 /scripts/_pi_ssh.py
 /.claude/
+/.superpowers/
 CLAUDE.md
 
 # Playwright MCP ephemeral state (page snapshots, console logs)

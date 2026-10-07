@@ -1,28 +1,13 @@
 import { z } from "zod";
 
-function normalizeOptionalString(value: unknown) {
-  if (typeof value !== "string") {
-    return value;
-  }
-
-  const trimmed = value.trim().replace(/^`+|`+$/g, "").trim();
-  return trimmed === "" ? undefined : trimmed;
-}
-
-function normalizeString(value: unknown) {
-  if (typeof value !== "string") {
-    return value;
-  }
-
-  return value.trim().replace(/^`+|`+$/g, "").trim();
-}
-
-const cleanedRequiredString = z.preprocess(normalizeString, z.string().min(1));
-const cleanedOptionalString = z.preprocess(
+import { appearanceSchema, appearancePatchSchema, DEFAULT_APPEARANCE } from "./appearance";
+import {
   normalizeOptionalString,
-  z.string().optional().nullable(),
-);
-const cleanedColor = z.preprocess(normalizeString, z.string().min(4));
+  normalizeString,
+  cleanedRequiredString,
+  cleanedOptionalString,
+  cleanedColor,
+} from "./string-validation";
 
 /**
  * Allow-list of href schemes that are safe to render as `<a href>`.
@@ -156,6 +141,7 @@ const translationsSchema = z.object({
 });
 
 export const siteSettingsSchema = z.object({
+  appearance: appearanceSchema.default(DEFAULT_APPEARANCE),
   siteName: cleanedRequiredString,
   // metaTitle moved to translations.<locale>.metaTitle (per-locale tab title)
   githubUrl: safeHrefOptional,
@@ -249,6 +235,7 @@ export const siteSettingsSchema = z.object({
 });
 
 export const siteSettingsPatchSchema = siteSettingsSchema.partial().extend({
+  appearance: appearancePatchSchema.optional(),
   translations: z
     .object({
       zh: localeContentSchema.partial().optional(),

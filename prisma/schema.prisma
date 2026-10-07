@@ -96,6 +96,7 @@ model TwoFactor {
 
 model SiteSettings {
   id                  String                    @id @default("default")
+  appearance          String                    @default("{}")
   siteName            String                    @default("xh.do")
   githubUrl           String?
   // Custom Open Graph image (1200x630). When set, used as both og:image and

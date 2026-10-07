@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { mergeAppearance, readAppearance } from "@/lib/appearance";
 import { withAdminApi } from "@/lib/api-guard";
 import { logAudit } from "@/lib/audit";
 import { ensureSiteSettings } from "@/lib/site-data";
@@ -25,6 +26,7 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
   };
 
   const mergedCandidate = {
+    appearance: mergeAppearance(readAppearance(existing.appearance), parsed.data.appearance),
     siteName: parsed.data.siteName ?? existing.siteName,
     githubUrl: parsed.data.githubUrl ?? existing.githubUrl,
     ogImageUrl: parsed.data.ogImageUrl ?? existing.ogImageUrl,
@@ -202,6 +204,7 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
   const site = await prisma.siteSettings.upsert({
     where: { id: "default" },
     update: {
+      appearance: JSON.stringify(data.appearance),
       siteName: data.siteName,
       githubUrl: data.githubUrl,
       ogImageUrl: data.ogImageUrl,
@@ -243,6 +246,7 @@ export const PATCH = withAdminApi(async ({ request, session }) => {
     },
     create: {
       id: "default",
+      appearance: JSON.stringify(data.appearance),
       siteName: data.siteName,
       githubUrl: data.githubUrl,
       ogImageUrl: data.ogImageUrl,

@@ -39,7 +39,9 @@ function buildPageCsp(isDev: boolean) {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "img-src 'self' https://cdn.xh.do data: blob:",
+    // Page-background URLs are admin-configured HTTP(S) images, rendered by
+    // the browser (never fetched through the server-side image optimizer).
+    "img-src 'self' https: http: data: blob:",
     "media-src 'self' https://cdn.xh.do blob:",
     "font-src 'self' data:",
     // Cloudflare Web Analytics (`beacon.min.js`) ships from

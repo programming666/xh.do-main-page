@@ -43,7 +43,7 @@ export function ContactLinks({ links }: { links: ContactLink[] }) {
           href={link.url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/5 px-4 py-2 text-xs font-medium uppercase tracking-[0.2em] text-cyan-200 transition-colors duration-200 ease-out hover:border-cyan-300/45 hover:bg-cyan-300/10"
+          className="editorial-contact-link"
         >
           {link.imageUrl ? (
             <Image

@@ -31,6 +31,7 @@ export function AdminShell({
   const navItems = [
     { href: `/${locale}/admin/dashboard`, icon: LayoutDashboard, label: a("dashboard") },
     { href: `/${locale}/admin/content/site`, icon: Settings, label: a("siteSettings") },
+    { href: `/${locale}/admin/content/appearance`, icon: Sparkles, label: a("appearance") },
     { href: `/${locale}/admin/content/background`, icon: ImageIcon, label: a("backgroundSettings") },
     { href: `/${locale}/admin/content/projects`, icon: Component, label: a("projects") },
     { href: `/${locale}/admin/content/links`, icon: Link2, label: a("friendLinks") },
@@ -39,7 +40,7 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(18,151,255,0.12),transparent_24%),radial-gradient(circle_at_top_right,rgba(123,97,255,0.1),transparent_20%),var(--background)]">
-      <aside className="fixed inset-y-0 left-0 z-40 w-72 border-r border-border bg-[color:var(--card-strong)]/80 backdrop-blur-2xl">
+      <aside className="relative z-40 w-full border-r border-border bg-[color:var(--card-strong)]/80 backdrop-blur-2xl lg:fixed lg:inset-y-0 lg:left-0 lg:w-72 lg:overflow-y-auto">
         <div className="flex h-full flex-col">
           <div className="border-b border-border px-6 py-6">
             <div className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(135deg,rgba(18,151,255,0.18),rgba(123,97,255,0.16))] p-4 shadow-[0_18px_40px_rgba(15,23,42,0.15)]">
@@ -103,8 +104,8 @@ export function AdminShell({
         </div>
       </aside>
 
-      <main className="ml-72 flex-1">
-        <div className="mx-auto max-w-6xl px-8 py-10">
+      <main className="min-w-0 flex-1 lg:ml-72">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
           <div className="glass-panel mb-6 rounded-[1.75rem] border border-[color:var(--border)] px-6 py-5">
             <p className="text-xs uppercase tracking-[0.24em] text-cyan-400">{a("dashboard")}</p>
             <h2 className="mt-2 text-2xl font-semibold text-foreground">{a("brandMedia")}</h2>

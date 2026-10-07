@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
+import { readAppearance } from "@/lib/appearance";
 
 type SiteTranslation = {
   locale: string;
@@ -170,6 +171,7 @@ export async function getSiteSettings(locale: AppLocale) {
 
   return {
     ...site,
+    appearance: readAppearance(site.appearance),
     heroMediaItems: mediaSets.fallbackItems,
     heroLightItems: mediaSets.lightItems,
     heroDarkItems: mediaSets.darkItems,

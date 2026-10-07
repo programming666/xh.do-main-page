@@ -10,8 +10,15 @@ import { useTheme } from "@/components/theme-provider";
 import { useProgressiveImage } from "./progressive-image";
 
 import { firstFrameUrl } from "@/lib/media-compacted";
+import { useImagePalette } from "./use-image-palette";
+import type { AdaptivePalette } from "@/lib/adaptive-palette";
 
-type TechBackgroundProps = {
+export type MediaPalette = AdaptivePalette & { theme: "light" | "dark" };
+
+export type TechBackgroundProps = {
+  presentation?: "panel" | "page";
+  adaptiveColors?: boolean;
+  onPaletteChange?: (palette: MediaPalette | null) => void;
   mediaType: "image" | "video";
   mediaUrl?: string | null;
   mediaItems?: string[];
@@ -228,6 +235,9 @@ export function TechBackground({
   backgroundRect = null,
   backgroundRects = null,
   inlineDarkFirst = null,
+  presentation = "panel",
+  adaptiveColors = false,
+  onPaletteChange,
 }: TechBackgroundProps) {
   const { resolvedTheme } = useTheme();
   const [offset, setOffset] = useState(0);
@@ -347,7 +357,7 @@ export function TechBackground({
     const onScroll = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        setOffset(window.scrollY);
+        setOffset(presentation === "page" ? Math.min(window.scrollY, window.innerHeight * 0.25) : window.scrollY);
       });
     };
 
@@ -357,7 +367,7 @@ export function TechBackground({
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
     };
-  }, [effect]);
+  }, [effect, presentation]);
 
   useEffect(() => {
     if (mediaType !== "image" || longestLength <= 1) {
@@ -387,23 +397,34 @@ export function TechBackground({
   );
 
   const isLight = resolvedTheme === "light";
+  const currentStack = isLight ? lightStack : darkStack;
+  const currentIndex = currentStack.length ? activeIndex % currentStack.length : 0;
+  const activeUrl = mediaType === "video" ? posterUrl : currentStack[currentIndex];
+  const sampleUrl = mediaType === "image" && !isLight && currentIndex === 0 && inlineDarkFirst
+    ? inlineDarkFirst : activeUrl;
+  const sampleCrop = mediaType === "image" ? resolveHeroBackgroundRect(backgroundRects, activeUrl, backgroundRect) : null;
+  const palette = useImagePalette(adaptiveColors ? sampleUrl ?? null : null, sampleCrop);
+  useEffect(() => {
+    if (palette === undefined) return;
+    onPaletteChange?.(palette ? { ...palette, theme: isLight ? "light" : "dark" } : null);
+  }, [palette, isLight, onPaletteChange]);
 
 
   return (
     <div
       ref={boxRef}
-      className={`absolute inset-0 overflow-clip rounded-[2rem] border border-white/10 ${HERO_CONTAINER_CLASS}`}
+      className={`absolute inset-0 overflow-clip ${presentation === "panel" ? "rounded-[2rem] border border-white/10" : ""} ${HERO_CONTAINER_CLASS}`}
     >
       <div
         className="absolute inset-0 transition-[background] duration-[700ms] ease-out"
         style={{
-          background:
+          background: presentation === "page" ? "var(--ed-bg)" :
             gradientEnabled && gradientStart && gradientEnd
               ? `linear-gradient(${gradientAngle}deg, ${gradientStart}, ${gradientEnd})`
               : (accentColor ?? "linear-gradient(135deg, #1297ff, #7b61ff)"),
         }}
       />
-      <div className="absolute inset-0 bg-grid opacity-60" />
+      {presentation === "panel" ? <div className="absolute inset-0 bg-grid opacity-60" /> : null}
       {hasMedia ? (
         mediaType === "video" ? (
           <video
@@ -437,6 +458,7 @@ export function TechBackground({
         )
       ) : null}
 
+      {presentation === "panel" ? <>
       {/* Two overlay layers crossfade with theme. The light-mode layer carries
           a stronger dark gradient so white hero text stays legible against
           bright photos. */}
@@ -463,6 +485,7 @@ export function TechBackground({
           background: `radial-gradient(circle at top right, ${accentColor ?? "#4cc9ff"}44, transparent 24%), radial-gradient(circle at bottom left, rgba(123,97,255,0.22), transparent 28%)`,
         }}
       />
+      </> : null}
     </div>
   );
 }

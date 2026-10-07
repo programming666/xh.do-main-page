@@ -22,10 +22,12 @@ const RASTER_EXT_RE = /\.(webp|png|jpe?g|avif)$/i;
  *
  * Accepted input shapes:
  *   https://cdn.xh.do/69e1a949....webp  → https://cdn.xh.do/69e1a949....-compacted.avif
- *   /uploads/backgrounds/x.webp         → /uploads/backgrounds/x-compacted.avif
+ *   /uploads/backgrounds/x.webp         → null (original file, no CDN pipeline)
  */
 export function getCompactedUrl(url: string | null | undefined): string | null {
   if (!url) return null;
+  // Uploads are stored as originals; only the CDN pipeline creates siblings.
+  if (url.startsWith("/uploads/")) return null;
   // Never try to compact something already compacted, or a data: URI.
   if (url.includes("-compacted.") || url.startsWith("data:")) return null;
   if (!RASTER_EXT_RE.test(url)) return null;

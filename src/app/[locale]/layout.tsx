@@ -4,16 +4,17 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { SiteChrome } from "@/components/site-chrome";
 import { ThemeProvider } from "@/components/theme-provider";
-import { TopNavLink } from "@/components/top-nav-link";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { getSiteSettings } from "@/lib/site-data";
 import { getCompactedUrl, firstFrameUrl } from "@/lib/media-compacted";
 import { HERO_INLINE_AVIF } from "@/lib/generated-hero-inline";
+import { parseHeroBackgroundRect, parseHeroBackgroundRects } from "@/lib/hero-crop";
 
 import "../globals.css";
+import "../editorial.css";
+import "../appearance-admin.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -125,10 +126,9 @@ export default async function LocaleLayout({
   // dynamic rendering and kill ISR caching on the public pages).
   setRequestLocale(locale);
 
-  const [messages, site, t, tNoScript] = await Promise.all([
+  const [messages, site, tNoScript] = await Promise.all([
     getMessages(),
     getSiteSettings(locale as AppLocale),
-    getTranslations({ locale, namespace: "hero" }),
     getTranslations({ locale, namespace: "noscript" }),
   ]);
 
@@ -206,21 +206,22 @@ export default async function LocaleLayout({
                 </div>
               </div>
             </noscript>
-            <div className="min-h-screen">
-              <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-4 py-4 sm:px-6 lg:px-10">
-                <div className="pointer-events-auto content-shell flex items-center justify-end gap-3">
-                  <TopNavLink
-                    locale={locale}
-                    friendsLabel={t("friendLinks")}
-                    backHomeLabel={t("backHome")}
-                    showFriendLinks={site.showFriendLinks}
-                  />
-                  <LocaleSwitcher />
-                  <ThemeToggle />
-                </div>
-              </header>
+            <SiteChrome appearance={site.appearance} siteName={site.siteName} logoUrl={site.logoUrl} showFriendLinks={site.showFriendLinks}
+              heroMedia={{
+                mediaType: site.heroMediaType as "image" | "video",
+                mediaUrl: site.heroMediaUrl, mediaItems: site.heroMediaItems,
+                lightMediaItems: site.heroLightItems, darkMediaItems: site.heroDarkItems,
+                posterUrl: site.heroPosterUrl, effect: site.heroEffect as "none" | "scroll-pan" | "parallax",
+                backgroundPosition: site.heroBackgroundPosition,
+                backgroundRect: parseHeroBackgroundRect(site.heroBackgroundRect),
+                backgroundRects: parseHeroBackgroundRects(site.heroBackgroundRects),
+                overlayOpacity: site.heroOverlayOpacity, intervalMs: site.heroImageIntervalMs,
+                accentColor: site.accentColor, gradientEnabled: site.gradientEnabled,
+                gradientStart: site.gradientStart, gradientEnd: site.gradientEnd,
+                gradientAngle: site.gradientAngle, inlineDarkFirst: HERO_INLINE_AVIF,
+              }}>
               {children}
-            </div>
+            </SiteChrome>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
