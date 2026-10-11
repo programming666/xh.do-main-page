@@ -9,9 +9,24 @@ const COMMON_SECURITY_HEADERS = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    value:
+      "camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(), usb=(), serial=(), bluetooth=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=(), display-capture=(), ambient-light-sensor=()",
   },
+  // Isolates this origin's browsing context from cross-origin openers
+  // (tabnabbing / XS-Leak class). Nothing here relies on `window.opener`
+  // across origins, so `same-origin` costs nothing.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   // Safe to send unconditionally; browsers ignore it on plain-HTTP responses.
+  //
+  // NOTE (verified 2026-10-11): this value does not currently reach browsers.
+  // The xh.do zone has Cloudflare HSTS *enabled* with "Max Age Header: 0
+  // (Disable)", and Cloudflare's zone setting overrides an origin HSTS header.
+  // Evidence: the build ships exactly this value (see
+  // .next/routes-manifest.json) while the edge answers `max-age=0`, and even
+  // /cdn-cgi/trace — which never touches this origin — answers `max-age=0`.
+  // The live value can only be changed in SSL/TLS -> Edge Certificates. Keep
+  // this header correct as the fallback for the day that setting changes, and
+  // keep it consistent with whatever the dashboard holds.
   {
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",

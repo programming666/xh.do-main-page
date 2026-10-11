@@ -14,6 +14,8 @@ STEPS = [
     {"label": "tagged og image", "cmd": "curl -sI -L --max-time 10 'https://xh.do/zh/opengraph-image?9c5fe813bcb26d39' | grep -iE 'HTTP|content-type|content-length' | head -8"},
     {"label": "og image body length", "cmd": "curl -s -o /tmp/og.png -w 'bytes=%{size_download} type=%{content_type}\\n' https://xh.do/zh/opengraph-image"},
     {"label": "twitter image body length", "cmd": "curl -s -o /tmp/tw.png -w 'bytes=%{size_download} type=%{content_type}\\n' https://xh.do/zh/twitter-image"},
+    {"label": "security headers (xh.do/zh)", "cmd": "curl -sI -L --max-time 10 https://xh.do/zh | grep -iE 'strict-transport-security|content-security-policy|x-frame-options|x-content-type-options|referrer-policy|permissions-policy|cross-origin-opener-policy'"},
+    {"label": "security.txt", "cmd": "curl -sI --max-time 10 https://xh.do/.well-known/security.txt | grep -iE 'HTTP|content-type'"},
 ]
 
 
