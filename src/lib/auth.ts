@@ -44,7 +44,6 @@ export const auth = betterAuth({
     disableSignUp: true,
   },
   plugins: [
-    nextCookies(),
     twoFactor({
       issuer: "xh.do",
       totpOptions: {
@@ -61,6 +60,12 @@ export const auth = betterAuth({
       // device is exposed to the 2FA prompt sooner.
       trustDeviceMaxAge: 60 * 60 * 24,
     }),
+    // Must stay LAST in this array. Better Auth's cookie integration has to run
+    // after every plugin whose `hooks.after` sets cookies — `twoFactor` sets the
+    // post-password challenge cookie and the trust-device cookie. With this
+    // first, Better Auth warns at boot ("should be placed last") and the cookies
+    // those hooks set may not be forwarded to the framework cookie store.
+    nextCookies(),
   ],
   user: {
     additionalFields: {
