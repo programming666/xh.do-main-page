@@ -1,39 +1,54 @@
-"""SFTP-reset helper: SCP-reset-admin-password.ts to prod then run it via SSH."""
+"""Upload reset-admin-password.ts to prod and run it over SSH.
+
+Transport is the operator's own ssh client, so auth comes from ~/.ssh/config —
+the prod box sets `PasswordAuthentication no`, so the paramiko + SSH_PASSWORD
+version could never connect. SSH_HOST defaults to the `netcup-b` alias.
+
+The chown target matters: the app runs as `xhdo` (uid 124 on netcup-b). The old
+code chowned to uid/gid 1000, which on this box is the unrelated `modoboa`
+service account — that hands another service write access to a file this helper
+later executes as `xhdo`.
+"""
 import os
+import subprocess
 import sys
-import tempfile
-import paramiko
+
+TARGET_PATH = "/opt/xhdo/app/scripts/reset-admin-password.ts"
+
+
+def ssh_argv() -> list[str]:
+    host = os.environ.get("SSH_HOST", "netcup-b")
+    user = os.environ.get("SSH_USER", "root")
+    port = os.environ.get("SSH_PORT", "22")
+    return ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", "-p", port, f"{user}@{host}"]
 
 
 def main() -> int:
-    password = os.environ.get("SSH_PASSWORD", "")
-    if not password:
-        print("SSH_PASSWORD env var is required", file=sys.stderr)
+    new_password = sys.argv[1] if len(sys.argv) > 1 else ""
+    if not new_password:
+        print("Usage: python scripts/_reset_admin_vp.py <NEW_PASSWORD>", file=sys.stderr)
         return 2
-    host = os.environ.get("SSH_HOST", "192.229.85.182")
-    port = int(os.environ.get("SSH_PORT", "22"))
-    user = os.environ.get("SSH_USER", "root")
-    target_path = "/opt/xhdo/app/scripts/reset-admin-password.ts"
+
     source_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "reset-admin-password.ts",
     )
 
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(host, port=port, username=user, password=password, look_for_keys=False, allow_agent=False)
-    sftp = client.open_sftp()
-    sftp.put(source_path, target_path)
-    sftp.chown(target_path, uid=1000, gid=1000)
-    sftp.chmod(target_path, 0o644)
-    sftp.close()
-    print(f"[sftp] uploaded {source_path} -> {target_path}")
-
-    new_password = sys.argv[1] if len(sys.argv) > 1 else ""
-    if not new_password:
-        print("Usage: python scripts/_reset_admin_vp.py <NEW_PASSWORD>", file=sys.stderr)
-        client.close()
-        return 2
+    with open(source_path, "rb") as src:
+        upload = subprocess.run(
+            [
+                *ssh_argv(),
+                f"cat > {TARGET_PATH} && chown xhdo:xhdo {TARGET_PATH} "
+                f"&& chmod 644 {TARGET_PATH} && ls -l {TARGET_PATH}",
+            ],
+            stdin=src,
+            capture_output=True,
+        )
+    if upload.returncode != 0:
+        print(upload.stderr.decode("utf-8", errors="replace"), file=sys.stderr)
+        return upload.returncode
+    print(f"[upload] {source_path} -> {TARGET_PATH}")
+    print(upload.stdout.decode("utf-8", errors="replace").rstrip())
 
     cmd = (
         f"su - xhdo -c \"cd /opt/xhdo/app && "
@@ -41,16 +56,12 @@ def main() -> int:
         f"{new_password!r} 2>&1\""
     )
     print(f"[ssh] running: {cmd}")
-    stdin, stdout, stderr = client.exec_command(cmd, timeout=60)
-    out = stdout.read().decode("utf-8", errors="replace")
-    err = stderr.read().decode("utf-8", errors="replace")
-    print(out)
-    if err:
+    run = subprocess.run([*ssh_argv(), cmd], capture_output=True)
+    print(run.stdout.decode("utf-8", errors="replace"))
+    if run.stderr:
         print("--- stderr ---", file=sys.stderr)
-        print(err, file=sys.stderr)
-    rc = stdout.channel.recv_exit_status()
-    client.close()
-    return rc
+        print(run.stderr.decode("utf-8", errors="replace"), file=sys.stderr)
+    return run.returncode
 
 
 if __name__ == "__main__":

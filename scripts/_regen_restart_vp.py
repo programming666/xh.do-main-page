@@ -1,10 +1,18 @@
-"""Pull, regen Prisma client, rebuild, restart on prod, test sign-in."""
-import os, sys, textwrap
-import paramiko
-HOST = os.environ.get("SSH_HOST", "192.229.85.182")
-PORT = int(os.environ.get("SSH_PORT", "22"))
+"""Pull, regen Prisma client, rebuild, restart on prod, then test sign-in.
+
+Transport is the operator's own ssh client (the same auth model as
+scripts/_pi_ssh.py): the generated script is piped to the prod box on stdin. The
+prod box sets `PasswordAuthentication no`, so the old paramiko + SSH_PASSWORD
+version could never connect — and its default host was a decommissioned IP.
+"""
+import os
+import subprocess
+import sys
+import textwrap
+
+HOST = os.environ.get("SSH_HOST", "netcup-b")
 USER = os.environ.get("SSH_USER", "root")
-PASSWORD = os.environ["SSH_PASSWORD"]
+PORT = os.environ.get("SSH_PORT", "22")
 NEW_PASSWORD = sys.argv[1] if len(sys.argv) > 1 else ""
 EMAIL = sys.argv[2] if len(sys.argv) > 2 else "admin@xh.do"
 
@@ -28,17 +36,23 @@ SCRIPT = textwrap.dedent(f"""
     head -c 500 /tmp/signin.json
     echo
 """)
-c = paramiko.SSHClient()
-c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-c.connect(HOST, port=PORT, username=USER, password=PASSWORD, look_for_keys=False, allow_agent=False)
-sftp = c.open_sftp()
-with sftp.file("/tmp/_regen_restart.sh", "w") as f:
-    f.write(SCRIPT)
-sftp.chmod("/tmp/_regen_restart.sh", 0o755)
-sftp.close()
-stdin, stdout, stderr = c.exec_command("bash /tmp/_regen_restart.sh", timeout=240)
-out = stdout.read().decode("utf-8", errors="replace")
-err = stderr.read().decode("utf-8", errors="replace")
-print(out)
-print("STDERR:", err)
-c.close()
+if not NEW_PASSWORD:
+    print(
+        "Usage: python scripts/_regen_restart_vp.py <NEW_ADMIN_PASSWORD> [EMAIL]",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+REMOTE = (
+    "cat > /tmp/_regen_restart.sh && chmod 755 /tmp/_regen_restart.sh "
+    "&& bash /tmp/_regen_restart.sh"
+)
+proc = subprocess.run(
+    ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", "-p", PORT, f"{USER}@{HOST}", REMOTE],
+    input=SCRIPT.encode("utf-8"),
+    capture_output=True,
+    timeout=900,
+)
+print(proc.stdout.decode("utf-8", errors="replace"))
+print("STDERR:", proc.stderr.decode("utf-8", errors="replace"))
+sys.exit(proc.returncode)

@@ -1,4 +1,15 @@
-"""Production deploy helper: pulls master, runs migrations + build, restarts pm2."""
+"""Production deploy helper: pulls master, runs migrations + build, restarts pm2.
+
+Prod layout (netcup-b, 159.195.244.144): stunnel4 terminates TLS on :3000 and
+forwards to the Next server on :3001. Cloudflare only ever reaches :3000 — the
+CFONLY iptables chain drops everything except Cloudflare to ports :3000-:3004
+and :8089. So the app must bind :3001; pointing it at :3000 collides with
+stunnel and the app never starts.
+
+Host and credentials come from the operator's SSH setup (see scripts/_pi_ssh.py):
+SSH_HOST defaults to the `netcup-b` alias in ~/.ssh/config and that entry's key
+is used. There is no password path — the box sets `PasswordAuthentication no`.
+"""
 import base64
 import json
 import os
@@ -10,11 +21,14 @@ ECOSYSTEM_CONFIG = """module.exports = {
   apps: [{
     name: 'xhdo',
     script: 'node_modules/next/dist/bin/next',
-    args: 'start -p 3000',
+    // :3001 is the app. Port :3000 belongs to stunnel4, which terminates TLS in
+    // front of this app and is what Cloudflare connects to — binding here to
+    // :3000 makes `next start` die with EADDRINUSE and takes the site down.
+    args: 'start -p 3001',
     cwd: '/opt/xhdo/app',
     env: {
       NODE_ENV: 'production',
-      PORT: '3000',
+      PORT: '3001',
     },
     max_memory_restart: '512M',
   }],
@@ -22,6 +36,15 @@ ECOSYSTEM_CONFIG = """module.exports = {
 """
 
 ECOSYSTEM_B64 = base64.b64encode(ECOSYSTEM_CONFIG.encode("utf-8")).decode("ascii")
+
+HEALTH_CHECK_CMD = (
+    "for i in $(seq 1 30); do "
+    "code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:3001/zh); "
+    "if [ \"$code\" = \"200\" ]; then echo \"app is up on :3001 (HTTP $code, attempt $i)\"; exit 0; fi; "
+    "sleep 1; "
+    "done; "
+    "echo \"FAILED: nothing answered 200 on :3001 within 30s (last code ${code:-none})\"; exit 1"
+)
 
 DEPLOY_STEPS = [
     {
@@ -54,12 +77,18 @@ DEPLOY_STEPS = [
         "cmd": "su - xhdo -c \"cd /opt/xhdo/app && pm2 restart ecosystem.config.cjs 2>&1 | tail -10\"",
     },
     {
-        "label": "wait + local check",
-        "cmd": "sleep 4 && curl -s -o /dev/null -w \"%{http_code}\\n\" http://localhost:3000/zh",
+        "label": "wait for the app on :3001",
+        # A flat `sleep 4` is not enough for a cold `next start` on netcup-b
+        # (~20s here), so the old check reported a false failure on a perfectly
+        # good deploy. Poll until it answers instead.
+        "timeout": 60,
+        "cmd": HEALTH_CHECK_CMD,
     },
     {
         "label": "smoke routes",
-        "cmd": "for u in / /zh /en /zh/friends /zh/admin/login /zh/admin/dashboard /icon /apple-icon /opengraph-image /twitter-image /sitemap.xml /robots.txt /manifest.webmanifest; do code=$(curl -s -o /dev/null -w \"%{http_code}\" -L --max-time 10 \"https://xh.do$u\"); echo \"$code $u\"; done",
+        # og/twitter images only exist under /[locale]/, so the old root-level
+        # /opengraph-image and /twitter-image entries 404ed on every run.
+        "cmd": "for u in / /zh /en /zh/friends /en/friends /zh/admin/login /zh/admin/dashboard /icon /apple-icon /zh/opengraph-image /zh/twitter-image /sitemap.xml /robots.txt /manifest.webmanifest /.well-known/security.txt; do code=$(curl -s -o /dev/null -w \"%{http_code}\" -L --max-time 10 \"https://xh.do$u\"); echo \"$code $u\"; done",
     },
     {
         "label": "og image under /zh",
@@ -81,19 +110,21 @@ DEPLOY_STEPS = [
         "label": "manifest body",
         "cmd": "curl -s https://xh.do/manifest.webmanifest | head -20",
     },
+    {
+        # Makes an edge-level regression visible in the deploy log — this is the
+        # check that would have shown the Cloudflare zone pinning
+        # `Strict-Transport-Security: max-age=0` over the origin's 24-month value.
+        "label": "security headers (live)",
+        "cmd": "curl -sI -L --max-time 10 https://xh.do/zh | grep -iE 'strict-transport-security|content-security-policy|x-frame-options|x-content-type-options|referrer-policy|permissions-policy|cross-origin-opener-policy'",
+    },
 ]
 
 
 def main() -> int:
-    password = os.environ.get("SSH_PASSWORD", "")
-    if not password:
-        print("SSH_PASSWORD env var is required", file=sys.stderr)
-        return 2
+    # Host + auth come from the operator's SSH setup; see scripts/_pi_ssh.py.
+    # SSH_HOST (default: the `netcup-b` alias), SSH_USER and SSH_PORT can still
+    # be overridden through the environment.
     env = os.environ.copy()
-    env["SSH_PASSWORD"] = password
-    env["SSH_HOST"] = os.environ.get("SSH_HOST", "192.229.85.182")
-    env["SSH_PORT"] = os.environ.get("SSH_PORT", "22")
-    env["SSH_USER"] = os.environ.get("SSH_USER", "root")
     env["PYTHONIOENCODING"] = "utf-8"
     out_path = tempfile.mktemp(prefix="deploy_", suffix=".json")
     err_path = tempfile.mktemp(prefix="deploy_", suffix=".err")
