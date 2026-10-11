@@ -1,6 +1,6 @@
 """Production deploy helper: pulls master, runs migrations + build, restarts pm2.
 
-Prod layout (netcup-b, 159.195.244.144): stunnel4 terminates TLS on :3000 and
+Prod layout (netcup-b): stunnel4 terminates TLS on :3000 and
 forwards to the Next server on :3001. Cloudflare only ever reaches :3000 — the
 CFONLY iptables chain drops everything except Cloudflare to ports :3000-:3004
 and :8089. So the app must bind :3001; pointing it at :3000 collides with

@@ -49,20 +49,18 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local SQLite DB & journals â€?NEVER commit production data
+# local SQLite DB & journals - NEVER commit production data
 /prisma/dev.db
 /prisma/dev.db-journal
 /prisma/*.db
 /prisma/*.db-journal
 
-# user-uploaded media (logos, backgrounds, project covers) â€?runtime content
+# user-uploaded media (logos, backgrounds, project covers) - runtime content
 /public/uploads/*
 !/public/uploads/.gitkeep
 
 # Claude Code workspace state
 
-# pi helper scripts (use env-var SSH_PASSWORD, never commit deploy creds)
-/scripts/_pi_ssh.py
 /.claude/
 /.superpowers/
 CLAUDE.md

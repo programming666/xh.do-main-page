@@ -4,10 +4,10 @@ Transport is the operator's own ssh client, so auth comes from ~/.ssh/config —
 the prod box sets `PasswordAuthentication no`, so the paramiko + SSH_PASSWORD
 version could never connect. SSH_HOST defaults to the `netcup-b` alias.
 
-The chown target matters: the app runs as `xhdo` (uid 124 on netcup-b). The old
-code chowned to uid/gid 1000, which on this box is the unrelated `modoboa`
-service account — that hands another service write access to a file this helper
-later executes as `xhdo`.
+The chown target matters: the app runs as `xhdo`, and on this box uid/gid 1000
+belongs to a different service account. The old code chowned there, which hands
+an unrelated service account write access to a file this helper then executes as
+`xhdo`.
 """
 import os
 import subprocess
