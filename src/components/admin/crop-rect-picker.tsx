@@ -1,0 +1,214 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+import type { PointerEvent as ReactPointerEvent } from "react";
+
+import { useTranslations } from "next-intl";
+
+import {
+  FULL_RECT,
+  resizeHeroBackgroundRect,
+  type HeroBackgroundRect,
+  type ResizeDir,
+} from "@/lib/hero-crop";
+
+type DragState = {
+  mode: "move" | ResizeDir;
+  startX: number;
+  startY: number;
+  startRect: HeroBackgroundRect;
+};
+
+
+/**
+ * Interactive crop-rect picker. Shows the source image and a draggable /
+ * resizable rectangle; the admin picks exactly which region of the hero
+ * background should be visible. `value` is normalized (0..1 each, relative
+ * to the source image); `null` means "whole image centered".
+ *
+ * NOTE on a Chrome quirk: after a pointerdown/pointerup on this picker
+ * (drag or plain click), the click's default action moves focus to the next
+ * focusable element in DOM order (e.g. the "reset" button), and Chrome then
+ * fires a SECOND synthetic click on that newly-focused element. That phantom
+ * click would reset the crop on every drag end. We suppress the click's
+ * default action in the capture phase right after our own pointerdown, which
+ * prevents the focus move and the phantom click entirely.
+ */
+export function CropRectPicker({
+  value,
+  imageUrl,
+  onChange,
+}: {
+  value: HeroBackgroundRect | null;
+  imageUrl: string | null;
+  onChange: (rect: HeroBackgroundRect | null) => void;
+}) {
+  const t = useTranslations("admin");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const suppressClickRef = useRef(false);
+  const dragRef = useRef<DragState | null>(null);
+  useEffect(() => {
+    const handler = (event: MouseEvent) => {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        event.preventDefault();
+      }
+    };
+    document.addEventListener("click", handler, true);
+    return () => document.removeEventListener("click", handler, true);
+  }, []);
+
+  // Preview state: null → the full-image dashed box (drag its handle to
+  // create a custom crop). Custom rect → solid box.
+  const rect = value ?? FULL_RECT;
+  const isCustom = value !== null;
+
+  const clamp = (v: number, min: number, max: number) =>
+    Math.min(Math.max(v, min), max);
+
+  const toRelative = (clientX: number, clientY: number) => {
+    const el = containerRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const bounds = el.getBoundingClientRect();
+    return {
+      x: (clientX - bounds.left) / bounds.width,
+      y: (clientY - bounds.top) / bounds.height,
+    };
+  };
+
+  const onPointerDown = (
+    event: ReactPointerEvent,
+    mode: "move" | ResizeDir,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    // Best-effort capture; synthetic events (tests) have no active pointer
+    // and throw — the drag still works via bubbling in that case.
+    try {
+      (event.currentTarget as HTMLElement).setPointerCapture?.(
+        event.pointerId,
+      );
+    } catch {
+      // ignore — pointer capture is an enhancement
+    }
+    const point = toRelative(event.clientX, event.clientY);
+    const next = {
+      mode,
+      startX: point.x,
+      startY: point.y,
+      startRect: { ...rect },
+    };
+    dragRef.current = next;
+    setDrag(next);
+    // Suppress the click default action that follows this pointer sequence
+    // (see component doc comment). The click handler clears the flag itself
+    // so the very next click is neutralized, which prevents the focus move
+    // and the phantom second click entirely.
+    suppressClickRef.current = true;
+  };
+
+  const onPointerMove = (event: ReactPointerEvent) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const point = toRelative(event.clientX, event.clientY);
+    const { mode, startX, startY, startRect } = drag;
+    if (mode === "move") {
+      onChange({
+        x: clamp(startRect.x + (point.x - startX), 0, 1 - startRect.w),
+        y: clamp(startRect.y + (point.y - startY), 0, 1 - startRect.h),
+        w: startRect.w,
+        h: startRect.h,
+      });
+    } else {
+      onChange(
+        resizeHeroBackgroundRect(
+          startRect,
+          drag.mode as ResizeDir,
+          point.x - startX,
+          point.y - startY,
+        ),
+      );
+    }
+  };
+
+  const endDrag = () => {
+    dragRef.current = null;
+    setDrag(null);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div
+        ref={containerRef}
+        // Container is exactly the size of the rendered image (img is
+        // w-full h-auto, no fixed height / no scrolling) so the normalized
+        // rect maps 1:1 onto percentage coordinates.
+        className="relative w-full select-none overflow-hidden rounded-xl border border-[color:var(--a-line)] bg-slate-950/40"
+        style={{ touchAction: "none" }}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerLeave={endDrag}
+      >
+        {imageUrl ? (
+          // w-full h-auto keeps the container exactly the size of the
+          // rendered image (no letterbox), so the normalized rect maps 1:1
+          // onto percentage coordinates.
+          // eslint-disable-next-line @next/next/no-img-element -- natural size needed via ref probe
+          <img
+            src={imageUrl}
+            alt=""
+            draggable={false}
+            className="pointer-events-none block h-auto w-full"
+          />
+        ) : (
+          <div className="flex h-40 items-center justify-center text-sm text-[color:var(--a-muted)]">
+            {t("heroBackgroundRectNoImage")}
+          </div>
+        )}
+        <div
+          className={`absolute cursor-move border-2 admin-crop-frame${isCustom ? "" : " border-dashed"}`}
+          style={{
+            left: `${rect.x * 100}%`,
+            top: `${rect.y * 100}%`,
+            width: `${rect.w * 100}%`,
+            height: `${rect.h * 100}%`,
+          }}
+          onPointerDown={(event) => onPointerDown(event, "move")}
+        >
+          <span className="pointer-events-none absolute left-1 top-1 text-[10px] font-semibold uppercase tracking-wider admin-crop-hint">
+            {isCustom ? t("heroBackgroundRectCrop") : t("heroBackgroundRectFull")}
+          </span>
+          {/* Corner resize handles: SE / NE / NW / SW */}
+          <div
+            className="admin-crop-handle absolute -bottom-1.5 -right-1.5 h-4 w-4 cursor-nwse-resize rounded-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            onPointerDown={(event) => onPointerDown(event, "se")}
+          />
+          <div
+            className="admin-crop-handle absolute -right-1.5 -top-1.5 h-4 w-4 cursor-nesw-resize rounded-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            onPointerDown={(event) => onPointerDown(event, "ne")}
+          />
+          <div
+            className="admin-crop-handle absolute -left-1.5 -top-1.5 h-4 w-4 cursor-nwse-resize rounded-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            onPointerDown={(event) => onPointerDown(event, "nw")}
+          />
+          <div
+            className="admin-crop-handle absolute -bottom-1.5 -left-1.5 h-4 w-4 cursor-nesw-resize rounded-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+            onPointerDown={(event) => onPointerDown(event, "sw")}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-3 text-xs text-[color:var(--a-muted)]">
+        <span>{t("heroBackgroundRectHint")}</span>
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="admin-btn"
+        >
+          {t("heroBackgroundRectReset")}
+        </button>
+      </div>
+    </div>
+  );
+}

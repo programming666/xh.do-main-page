@@ -1,0 +1,4 @@
+# Shell scripts must keep LF endings. With core.autocrlf=true (the default on
+# Windows here), a checkout would otherwise give *.sh CRLF endings, and bash
+# then fails with "\r: command not found".
+*.sh text eol=lf
