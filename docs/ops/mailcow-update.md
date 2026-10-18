@@ -1,6 +1,6 @@
 # mailcow 更新运维手册（netcup-b）
 
-> 适用主机：`netcup-b`（<host-ip-redacted>，邮件主机 `mail.xh.do`）
+> 适用主机：`netcup-b`（邮件主机 `mail.xh.do`；主机 IP 见 `~/.ssh/config`，不写入仓库）
 > 工具：`/usr/local/bin/mailcow-update`（仓库源文件 `scripts/mailcow-update.sh`）
 > 最后更新：2026-10-11（2026-09a 更新事故之后）
 
@@ -253,7 +253,7 @@ MAILCOW_BACKUP_LOCATION=/opt/mailcow-backup ./helper-scripts/backup_and_restore.
 
 | 项目 | 值 |
 |---|---|
-| 邮件主机 | `netcup-b` / <host-ip-redacted> |
+| 邮件主机 | `netcup-b`（IP 见 `~/.ssh/config`，不入库） |
 | mailcow 目录 | `/opt/mailcow-dockerized` |
 | linuxdo-bridge 目录 | `/opt/linuxdo-bridge` |
 | compose 项目名 | `mailcowdockerized` |
